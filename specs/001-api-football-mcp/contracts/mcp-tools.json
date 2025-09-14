@@ -1,0 +1,465 @@
+{
+  "tools": [
+    {
+      "name": "get_standings",
+      "description": "Get current or historical Premier League standings",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "season": {
+            "type": "number",
+            "description": "Season year (e.g., 2024 for 2024-25 season). Defaults to current season.",
+            "minimum": 1992,
+            "maximum": 2025
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "standings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Standing"
+            }
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_fixtures",
+      "description": "Get fixtures by date range, team, or status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "season": {
+            "type": "number",
+            "description": "Season year"
+          },
+          "teamId": {
+            "type": "number",
+            "description": "Filter by team ID"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date (YYYY-MM-DD)"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "description": "End date (YYYY-MM-DD)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["NS", "1H", "HT", "2H", "FT", "LIVE"],
+            "description": "Filter by match status"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of fixtures to return",
+            "default": 50,
+            "maximum": 100
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "fixtures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Fixture"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_team",
+      "description": "Get detailed team information",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "number",
+            "description": "Team ID (optional if name provided)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Team name (optional if ID provided)"
+          },
+          "season": {
+            "type": "number",
+            "description": "Season year for squad information"
+          }
+        },
+        "anyOf": [
+          {"required": ["teamId"]},
+          {"required": ["name"]}
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "$ref": "#/definitions/Team"
+          },
+          "squad": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Player"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_player",
+      "description": "Get detailed player information and statistics",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "number",
+            "description": "Player ID (optional if name provided)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Player name (optional if ID provided)"
+          },
+          "season": {
+            "type": "number",
+            "description": "Season year for statistics"
+          }
+        },
+        "anyOf": [
+          {"required": ["playerId"]},
+          {"required": ["name"]}
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "player": {
+            "$ref": "#/definitions/Player"
+          },
+          "statistics": {
+            "$ref": "#/definitions/PlayerStatistics"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_match_events",
+      "description": "Get events from a specific match",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fixtureId": {
+            "type": "number",
+            "description": "Fixture/Match ID"
+          }
+        },
+        "required": ["fixtureId"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "fixture": {
+            "$ref": "#/definitions/Fixture"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/MatchEvent"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "search_teams",
+      "description": "Search for teams by name or get all EPL teams for a season",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query for team name"
+          },
+          "season": {
+            "type": "number",
+            "description": "Season year to get all teams from"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Team"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "search_players",
+      "description": "Search for players by name or position",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query for player name"
+          },
+          "teamId": {
+            "type": "number",
+            "description": "Filter by team ID"
+          },
+          "position": {
+            "type": "string",
+            "enum": ["Goalkeeper", "Defender", "Midfielder", "Attacker"],
+            "description": "Filter by position"
+          },
+          "season": {
+            "type": "number",
+            "description": "Season year"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Player"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_live_matches",
+      "description": "Get all currently live Premier League matches",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "fixtures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Fixture"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Team": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "number"},
+        "name": {"type": "string"},
+        "code": {"type": "string"},
+        "logo": {"type": "string"},
+        "founded": {"type": "number"},
+        "venue": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "city": {"type": "string"},
+            "capacity": {"type": "number"},
+            "surface": {"type": "string"},
+            "image": {"type": "string"}
+          }
+        }
+      }
+    },
+    "Player": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "number"},
+        "name": {"type": "string"},
+        "firstname": {"type": "string"},
+        "lastname": {"type": "string"},
+        "age": {"type": "number"},
+        "birthDate": {"type": "string"},
+        "birthPlace": {"type": "string"},
+        "birthCountry": {"type": "string"},
+        "nationality": {"type": "string"},
+        "height": {"type": "string"},
+        "weight": {"type": "string"},
+        "photo": {"type": "string"},
+        "position": {"type": "string"},
+        "number": {"type": "number"}
+      }
+    },
+    "PlayerStatistics": {
+      "type": "object",
+      "properties": {
+        "playerId": {"type": "number"},
+        "teamId": {"type": "number"},
+        "season": {"type": "number"},
+        "appearances": {"type": "number"},
+        "lineups": {"type": "number"},
+        "minutes": {"type": "number"},
+        "goals": {"type": "number"},
+        "assists": {"type": "number"},
+        "yellowCards": {"type": "number"},
+        "redCards": {"type": "number"},
+        "rating": {"type": "number"}
+      }
+    },
+    "Fixture": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "number"},
+        "referee": {"type": "string"},
+        "timezone": {"type": "string"},
+        "date": {"type": "string"},
+        "timestamp": {"type": "number"},
+        "venue": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "city": {"type": "string"}
+          }
+        },
+        "status": {
+          "type": "object",
+          "properties": {
+            "long": {"type": "string"},
+            "short": {"type": "string"},
+            "elapsed": {"type": ["number", "null"]}
+          }
+        },
+        "teams": {
+          "type": "object",
+          "properties": {
+            "home": {"$ref": "#/definitions/TeamInFixture"},
+            "away": {"$ref": "#/definitions/TeamInFixture"}
+          }
+        },
+        "goals": {
+          "type": "object",
+          "properties": {
+            "home": {"type": ["number", "null"]},
+            "away": {"type": ["number", "null"]}
+          }
+        }
+      }
+    },
+    "TeamInFixture": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "number"},
+        "name": {"type": "string"},
+        "logo": {"type": "string"},
+        "winner": {"type": ["boolean", "null"]}
+      }
+    },
+    "Standing": {
+      "type": "object",
+      "properties": {
+        "rank": {"type": "number"},
+        "team": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "logo": {"type": "string"}
+          }
+        },
+        "points": {"type": "number"},
+        "goalsDiff": {"type": "number"},
+        "form": {"type": "string"},
+        "status": {"type": "string"},
+        "description": {"type": "string"},
+        "all": {"$ref": "#/definitions/StandingStats"},
+        "home": {"$ref": "#/definitions/StandingStats"},
+        "away": {"$ref": "#/definitions/StandingStats"},
+        "update": {"type": "string"}
+      }
+    },
+    "StandingStats": {
+      "type": "object",
+      "properties": {
+        "played": {"type": "number"},
+        "win": {"type": "number"},
+        "draw": {"type": "number"},
+        "lose": {"type": "number"},
+        "goals": {
+          "type": "object",
+          "properties": {
+            "for": {"type": "number"},
+            "against": {"type": "number"}
+          }
+        }
+      }
+    },
+    "MatchEvent": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "object",
+          "properties": {
+            "elapsed": {"type": "number"},
+            "extra": {"type": ["number", "null"]}
+          }
+        },
+        "team": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "logo": {"type": "string"}
+          }
+        },
+        "player": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"}
+          }
+        },
+        "assist": {
+          "type": "object",
+          "properties": {
+            "id": {"type": ["number", "null"]},
+            "name": {"type": ["string", "null"]}
+          }
+        },
+        "type": {"type": "string"},
+        "detail": {"type": "string"},
+        "comments": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

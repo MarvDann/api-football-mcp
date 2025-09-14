@@ -1,0 +1,318 @@
+# CLI Tools Documentation
+
+This directory contains command-line interfaces for managing and interacting with the API-Football MCP Server components.
+
+## Overview
+
+The CLI tools provide direct access to server functionality for development, debugging, operations, and maintenance tasks. Each CLI is designed to be standalone and can be used independently of the MCP server.
+
+## CLI Files
+
+### `server.ts` - Server Management CLI
+
+Main CLI for managing the MCP server lifecycle and configuration.
+
+#### Commands
+- `start` - Start the MCP server with custom configuration
+- `health` - Check server health and dependencies
+- `validate` - Validate configuration without starting
+- `tools` - List available MCP tools
+- `cache` - Show cache status and statistics
+- `version` - Display version information
+
+#### Usage Examples
+```bash
+# Start server with debug logging
+node dist/cli/server.js start --log-level debug --verbose
+
+# Check server health
+node dist/cli/server.js health --verbose
+
+# Validate configuration without starting
+node dist/cli/server.js validate --dry-run
+
+# List all available MCP tools
+node dist/cli/server.js tools
+
+# Show cache statistics in table format
+node dist/cli/server.js cache --verbose
+```
+
+#### Options
+- `--port <port>` - Port number (default: 3000, stdio mode ignores this)
+- `--host <host>` - Host address (default: localhost)
+- `--log-level <level>` - Log level: debug|info|warn|error (default: info)
+- `--config <file>` - Configuration file path
+- `--dry-run` - Validate configuration without starting
+- `--verbose` - Enable verbose output
+- `--daemon` - Run as daemon process
+
+### `api-client.ts` - API Client CLI
+
+Direct interface to the API-Football client for testing and debugging.
+
+#### Endpoints
+- `standings` - Get current season standings
+- `fixtures` - Get fixtures with filtering options
+- `live-fixtures` - Get currently live fixtures
+- `teams` - Get teams for a season
+- `team` - Get specific team information (requires id parameter)
+- `players` - Get players with filtering
+- `player` - Get specific player information (requires id parameter)
+- `squad` - Get team squad (requires team parameter)
+- `events` - Get fixture events (requires fixture parameter)
+- `rate-limit` - Show current rate limit status
+
+#### Usage Examples
+```bash
+# Get current season standings
+node dist/cli/api-client.js --endpoint standings
+
+# Get fixtures for date range
+node dist/cli/api-client.js --endpoint fixtures season=2023 from=2023-01-01 to=2023-01-31
+
+# Get specific team information
+node dist/cli/api-client.js --endpoint team id=42 season=2023
+
+# Search for players
+node dist/cli/api-client.js --endpoint players search=Messi team=85
+
+# Check rate limit status in table format
+node dist/cli/api-client.js --endpoint rate-limit --format table
+```
+
+#### Options
+- `--api-key <key>` - API key (default: API_FOOTBALL_KEY env var)
+- `--endpoint <name>` - Endpoint to call (required)
+- `--format <format>` - Output format: json|table (default: json)
+- `--verbose` - Show detailed output
+
+#### Parameters
+Use `key=value` format for endpoint parameters:
+- `season=2023` - Season year
+- `team=42` - Team ID
+- `from=2023-01-01` - Start date
+- `to=2023-01-31` - End date
+- `search=Arsenal` - Search query
+- `page=2` - Page number for paginated results
+
+### `cache.ts` - Cache Management CLI
+
+Interactive cache management and debugging tool.
+
+#### Commands
+- `get <key>` - Get value from cache
+- `set <key> <value>` - Set value in cache
+- `delete <key>` - Delete key from cache
+- `clear` - Clear all cache entries
+- `keys [pattern]` - List all keys or keys matching pattern
+- `values` - List all cached values
+- `stats` - Show cache statistics
+- `info <key>` - Show entry metadata for specific key
+- `find <pattern>` - Find keys matching pattern (regex or glob)
+- `cleanup` - Force cleanup of expired entries
+- `refresh <key> [ttl]` - Refresh entry timestamp and optionally TTL
+- `generate-key <type> [params]` - Generate cache key for data type
+
+#### Usage Examples
+```bash
+# Set a cached value with TTL
+node dist/cli/cache.js set "standings:2023" '{"data": "value"}' --ttl 3600
+
+# Get cached value
+node dist/cli/cache.js get "standings:2023"
+
+# List all cache keys
+node dist/cli/cache.js keys
+
+# Find keys matching pattern
+node dist/cli/cache.js find "standings:*"
+
+# Show cache statistics as table
+node dist/cli/cache.js stats --format table
+
+# Show detailed info about cache entry
+node dist/cli/cache.js info "standings:2023"
+
+# Generate cache key for standings
+node dist/cli/cache.js generate-key standings season=2023
+```
+
+#### Options
+- `--key <key>` - Cache key for operations
+- `--value <value>` - Cache value (JSON string for objects)
+- `--ttl <seconds>` - Time to live in seconds
+- `--pattern <pattern>` - Pattern for key matching
+- `--format <format>` - Output format: json|table (default: json)
+- `--verbose` - Show detailed output
+
+## Common Usage Patterns
+
+### Development Workflow
+```bash
+# 1. Validate configuration
+node dist/cli/server.js validate --verbose
+
+# 2. Check API connectivity
+node dist/cli/api-client.js --endpoint rate-limit
+
+# 3. Test specific endpoints
+node dist/cli/api-client.js --endpoint standings --verbose
+
+# 4. Start server
+node dist/cli/server.js start --log-level debug
+```
+
+### Debugging Issues
+```bash
+# Check server health
+node dist/cli/server.js health --verbose
+
+# Inspect cache state
+node dist/cli/cache.js stats --format table
+node dist/cli/cache.js keys
+
+# Test API endpoints directly
+node dist/cli/api-client.js --endpoint standings --verbose
+
+# Clear cache if needed
+node dist/cli/cache.js clear
+```
+
+### Performance Testing
+```bash
+# Check rate limit status
+node dist/cli/api-client.js --endpoint rate-limit --format table
+
+# Monitor cache performance
+node dist/cli/cache.js stats --format table
+
+# Test specific high-load scenarios
+node dist/cli/api-client.js --endpoint fixtures season=2023 --verbose
+```
+
+### Maintenance Tasks
+```bash
+# Clean up expired cache entries
+node dist/cli/cache.js cleanup
+
+# Check configuration validity
+node dist/cli/server.js validate --config /path/to/config.json
+
+# Backup cache keys for analysis
+node dist/cli/cache.js keys > cache-keys-backup.txt
+```
+
+## Error Handling
+
+All CLI tools include comprehensive error handling:
+
+### API Client CLI
+- **Invalid API Key**: Clear error message with setup instructions
+- **Network Errors**: Retry suggestions and connection troubleshooting
+- **Rate Limiting**: Informative messages about wait times
+- **Invalid Parameters**: Parameter validation with examples
+
+### Server CLI
+- **Configuration Errors**: Detailed validation messages
+- **Port Conflicts**: Alternative port suggestions
+- **Permission Issues**: Clear guidance on required permissions
+- **Dependency Failures**: Component-specific error diagnosis
+
+### Cache CLI
+- **Cache Corruption**: Automatic recovery suggestions
+- **Memory Issues**: Size limit guidance
+- **Key Not Found**: Helpful suggestions for key patterns
+- **Invalid JSON**: Parse error details with correction hints
+
+## Output Formats
+
+### JSON Format (Default)
+- Machine-readable structured output
+- Preserves all data types and nested structures
+- Suitable for piping to other tools
+- Consistent format across all CLIs
+
+### Table Format
+- Human-readable tabular display
+- Automatic column sizing
+- Header row with field names
+- Suitable for terminal viewing
+
+### Verbose Mode
+- Additional debug information
+- Request/response timing
+- Detailed error messages
+- Configuration details
+
+## Integration with Scripts
+
+### Bash Scripts
+```bash
+#!/bin/bash
+# Health check script
+HEALTH=$(node dist/cli/server.js health --format json)
+STATUS=$(echo "$HEALTH" | jq -r '.status')
+
+if [ "$STATUS" != "healthy" ]; then
+  echo "Server unhealthy"
+  exit 1
+fi
+```
+
+### Node.js Scripts
+```javascript
+const { execSync } = require('child_process')
+
+// Get cache stats programmatically
+const stats = JSON.parse(
+  execSync('node dist/cli/cache.js stats --format json', { encoding: 'utf8' })
+)
+
+console.log(`Cache hit rate: ${stats.hitRate * 100}%`)
+```
+
+## Configuration Files
+
+### Server Configuration
+```json
+{
+  "name": "api-football-mcp",
+  "version": "1.0.0",
+  "apiKey": "your-api-key",
+  "cacheMaxSize": 2000,
+  "cacheTtl": 600000,
+  "logLevel": "info",
+  "host": "localhost",
+  "port": 3000
+}
+```
+
+### Environment Variables
+All CLIs respect these environment variables:
+- `API_FOOTBALL_KEY` - API key for API-Football service
+- `LOG_LEVEL` - Default logging level
+- `CACHE_MAX_SIZE` - Cache size limit
+- `CACHE_TTL` - Default cache TTL
+
+## Development Guidelines
+
+### Adding New Commands
+1. Follow existing command structure
+2. Include comprehensive help text
+3. Support both JSON and table output
+4. Add error handling and validation
+5. Write usage examples
+
+### CLI Design Principles
+- **Consistent Interface**: Same options across CLIs
+- **Clear Error Messages**: Actionable error information
+- **Progressive Disclosure**: Basic usage simple, advanced features available
+- **Machine Readable**: JSON output for automation
+- **Human Friendly**: Table output for manual use
+
+### Testing CLIs
+- Unit tests for command parsing
+- Integration tests with real components
+- Error scenario testing
+- Output format validation

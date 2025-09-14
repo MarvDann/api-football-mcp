@@ -1,0 +1,197 @@
+# API-Football MCP Server Library Documentation
+
+This directory contains the core library modules for the API-Football MCP Server.
+
+## Architecture Overview
+
+The library is organized into several key modules:
+
+### api-client/ - HTTP Client for API-Football
+- **Purpose**: Handles all HTTP communication with API-Football API
+- **Features**: Rate limiting, retry logic, request/response parsing
+- **Key Files**:
+  - `client.ts`: Main APIFootballClient class
+  - `endpoints.ts`: API endpoint definitions and types
+  - `retry.ts`: Exponential backoff retry mechanism
+  - `parser.ts`: Response validation and parsing
+
+### cache/ - Intelligent Caching System
+- **Purpose**: LRU cache with TTL for performance optimization
+- **Features**: Automatic expiration, memory management, cache policies
+- **Key Files**:
+  - `lru-cache.ts`: Main LRUCache implementation
+  - `keys.ts`: Cache key generation and management
+  - `policies.ts`: TTL policies for different data types
+
+### tools/ - MCP Tool Implementations
+- **Purpose**: Individual MCP tool implementations for football data
+- **Features**: Parameter validation, error handling, caching integration
+- **Key Files**:
+  - `get-standings.ts`: League standings tool
+  - `get-fixtures.ts`: Match fixtures tool
+  - `get-team.ts`: Team information tool
+  - `get-player.ts`: Player data tool
+  - `get-match-events.ts`: Live match events tool
+  - `search-teams.ts`: Team search tool
+  - `search-players.ts`: Player search tool
+  - `get-live-matches.ts`: Live matches tool
+  - `registry.ts`: Tool registration and management
+
+### server/ - Server Infrastructure
+- **Purpose**: MCP server setup, middleware, logging, and utilities
+- **Features**: Structured logging, error handling, graceful shutdown
+- **Key Files**:
+  - `register-tools.ts`: MCP tool registration
+  - `errors.ts`: Error handling and MCP error codes
+  - `logger.ts`: Structured logging system
+  - `middleware.ts`: Request/response logging middleware
+  - `shutdown.ts`: Graceful shutdown handling
+
+## Usage Patterns
+
+### Creating an API Client
+```typescript
+import { APIFootballClient } from './api-client/client'
+
+const client = new APIFootballClient({
+  apiKey: 'your-api-key',
+  timeout: 15000
+})
+
+const standings = await client.getStandings(2023)
+```
+
+### Using the Cache
+```typescript
+import { LRUCache } from './cache/lru-cache'
+import { generateCacheKey } from './cache/keys'
+
+const cache = new LRUCache({
+  maxSize: 1000,
+  defaultTtl: 5 * 60 * 1000 // 5 minutes
+})
+
+const key = generateCacheKey('standings', { season: 2023 })
+cache.set(key, data, 60000) // 1 minute TTL
+const cachedData = cache.get(key)
+```
+
+### Implementing MCP Tools
+```typescript
+import { Tool, CallToolRequest } from '@modelcontextprotocol/sdk/types.js'
+
+class MyTool implements Tool {
+  name = 'my_tool'
+  description = 'Tool description'
+  inputSchema = { /* JSON schema */ }
+
+  async call(request: CallToolRequest) {
+    // Tool implementation
+    return {
+      content: [{ type: 'text', text: 'Result' }]
+    }
+  }
+}
+```
+
+### Using Structured Logging
+```typescript
+import { logger } from './server/logger'
+
+logger.info('Operation started', { userId: '123' })
+logger.error('Operation failed', error, { context: 'additional info' })
+```
+
+## Performance Considerations
+
+### Caching Strategy
+- Historical data (past seasons): 24h TTL
+- Current season data: 5min TTL
+- Live data: 30sec TTL
+- Static data: 1h TTL
+
+### Rate Limiting
+- Reads X-RateLimit-* headers from API responses
+- Implements exponential backoff on 429 errors
+- Automatic retry with increasing delays
+
+### Memory Management
+- LRU eviction when cache reaches maxSize
+- Periodic cleanup of expired entries
+- Graceful shutdown with resource cleanup
+
+## Error Handling
+
+### API Errors
+- Network errors: Retryable with exponential backoff
+- 4xx errors: Non-retryable (except 429)
+- 5xx errors: Retryable
+- Timeout errors: Retryable
+
+### MCP Errors
+- Uses standard MCP error codes
+- Provides meaningful error messages
+- Includes context for debugging
+
+### Cache Errors
+- Graceful degradation when cache fails
+- Fallback to API calls
+- Automatic recovery
+
+## Testing Strategy
+
+### Unit Tests
+- Individual module functionality
+- Mock external dependencies
+- Test error conditions
+
+### Integration Tests
+- End-to-end workflows
+- Real API integration (with test keys)
+- Cache integration testing
+
+### Performance Tests
+- Concurrent request handling
+- Memory usage validation
+- Response time benchmarks
+
+## Security Considerations
+
+### API Key Protection
+- Never log API keys
+- Sanitize sensitive parameters
+- Use environment variables
+
+### Input Validation
+- Validate all tool parameters
+- Sanitize user inputs
+- Type checking with TypeScript
+
+### Error Information
+- Don't expose internal errors to users
+- Sanitize error messages
+- Log full details internally
+
+## Development Guidelines
+
+### Code Style
+- Use TypeScript strict mode
+- Follow ESLint standard config
+- 2-space indentation, no semicolons
+- Descriptive variable/function names
+
+### Documentation
+- JSDoc for public APIs
+- Inline comments for complex logic
+- Update this file for architectural changes
+
+### Testing
+- Write tests before implementation (TDD)
+- Aim for high test coverage
+- Test both success and failure paths
+
+### Performance
+- Monitor memory usage
+- Profile critical paths
+- Optimize hot code paths
+- Consider caching opportunities

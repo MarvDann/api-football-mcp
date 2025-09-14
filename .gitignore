@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+
+# Test results
+test-results/
+junit.xml
+
+# Cache
+.cache/
+.temp/
+.tmp/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm

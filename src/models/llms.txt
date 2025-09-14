@@ -1,0 +1,211 @@
+# Data Models Documentation
+
+This directory contains TypeScript interfaces and types for all football data entities used throughout the API-Football MCP Server.
+
+## Overview
+
+The models define the shape of data returned from the API-Football service and used internally by the MCP tools. All models follow consistent naming conventions and include comprehensive type definitions.
+
+## Model Files
+
+### Core Entities
+
+#### `league.ts` - League Information
+- **League**: Basic league information (id, name, type, logo)
+- **Season**: Season-specific data (year, start/end dates, current status)
+- **Country**: Country information for leagues
+
+#### `team.ts` - Team and Venue Data
+- **Team**: Team details (id, name, code, country, founded, logo)
+- **Venue**: Stadium information (id, name, address, capacity, surface)
+- **TeamStatistics**: Season statistics for teams
+
+#### `player.ts` - Player Information
+- **Player**: Player profile (id, name, age, nationality, position, photo)
+- **PlayerStatistics**: Detailed performance statistics
+- **Birth**: Birth information (date, place, country)
+- **Career**: Career history and statistics
+
+#### `fixture.ts` - Match Data
+- **Fixture**: Match information (id, date, venue, status)
+- **FixtureStatus**: Match status (not started, live, finished, etc.)
+- **Score**: Match score information (halftime, fulltime, extratime)
+- **Teams**: Home and away team information for fixtures
+
+#### `standing.ts` - League Standings
+- **Standing**: League table entry (team, played, won, drawn, lost, points)
+- **StandingStats**: Detailed statistics (goals for/against, form)
+- **StandingGroup**: Group standings for tournaments
+
+#### `match-event.ts` - Live Match Events
+- **MatchEvent**: Individual match events (goals, cards, substitutions)
+- **EventType**: Types of events (Goal, Card, Subst)
+- **EventDetail**: Detailed event information (player, time, assist)
+
+#### `season.ts` - Season Configuration
+- **SeasonConfig**: Configuration for valid season ranges
+- **SEASON_CONFIG**: Constants for minimum/maximum seasons (1992-2024)
+
+### Usage Patterns
+
+#### Type-Safe Data Access
+```typescript
+import { Team, Player, Fixture } from '../models'
+
+function processTeamData(team: Team): string {
+  return `${team.name} (${team.code}) - Founded: ${team.founded}`
+}
+
+function formatFixture(fixture: Fixture): string {
+  return `${fixture.teams.home.name} vs ${fixture.teams.away.name} - ${fixture.fixture.date}`
+}
+```
+
+#### API Response Typing
+```typescript
+import { ApiResponse } from '../lib/api-client/endpoints'
+import { Standing } from '../models/standing'
+
+const response: ApiResponse<Standing[]> = await apiClient.getStandings()
+const standings = response.response // Fully typed as Standing[]
+```
+
+#### Validation with Types
+```typescript
+import { SEASON_CONFIG } from '../models/season'
+
+function validateSeason(season: number): boolean {
+  return season >= SEASON_CONFIG.MINIMUM_SEASON &&
+         season <= SEASON_CONFIG.MAXIMUM_SEASON
+}
+```
+
+## Design Principles
+
+### Consistency
+- All models use consistent naming (camelCase for properties)
+- Optional properties marked with `?`
+- Arrays properly typed (e.g., `Player[]` not `any[]`)
+
+### Type Safety
+- No `any` types used
+- Union types for known value sets
+- Proper null/undefined handling
+
+### Documentation
+- JSDoc comments for complex properties
+- Examples provided for usage patterns
+- Clear property descriptions
+
+### Extensibility
+- Models can be extended for additional properties
+- Backward compatible changes preferred
+- Version compatibility maintained
+
+## Common Patterns
+
+### Optional Properties
+Most API responses may have optional fields:
+```typescript
+interface Player {
+  id: number
+  name: string
+  age?: number        // May not be available
+  photo?: string      // May not be provided
+  injured?: boolean   // May not be reported
+}
+```
+
+### Nested Objects
+Complex entities use nested object structures:
+```typescript
+interface Fixture {
+  fixture: {
+    id: number
+    date: string
+    status: FixtureStatus
+  }
+  teams: {
+    home: Team
+    away: Team
+  }
+  score: {
+    halftime: Score
+    fulltime: Score
+    extratime?: Score
+  }
+}
+```
+
+### Enums and Unions
+Use union types for known value sets:
+```typescript
+type EventType = 'Goal' | 'Card' | 'Subst'
+type CardType = 'Yellow Card' | 'Red Card'
+type MatchStatus = 'NS' | '1H' | 'HT' | '2H' | 'FT' | 'AET' | 'PEN'
+```
+
+## Validation Integration
+
+### Runtime Validation
+While TypeScript provides compile-time type checking, runtime validation can be added:
+
+```typescript
+function isValidTeam(obj: any): obj is Team {
+  return obj &&
+    typeof obj.id === 'number' &&
+    typeof obj.name === 'string' &&
+    (obj.founded === undefined || typeof obj.founded === 'number')
+}
+```
+
+### Parameter Validation in Tools
+Models guide parameter validation in MCP tools:
+
+```typescript
+// In get-team.ts
+const inputSchema = {
+  type: 'object',
+  properties: {
+    id: {
+      type: 'number',
+      description: 'Team ID (required)'
+    },
+    season: {
+      type: 'number',
+      minimum: SEASON_CONFIG.MINIMUM_SEASON,
+      maximum: SEASON_CONFIG.MAXIMUM_SEASON,
+      description: 'Season year (optional)'
+    }
+  },
+  required: ['id']
+}
+```
+
+## Evolution Strategy
+
+### Adding New Fields
+When API adds new fields:
+1. Add as optional property first
+2. Update documentation
+3. Consider backward compatibility
+
+### Breaking Changes
+For incompatible changes:
+1. Create new model version
+2. Maintain old version temporarily
+3. Migrate tools gradually
+4. Remove old version after migration
+
+### Testing Models
+Models should be tested with:
+1. Real API response samples
+2. Edge case data
+3. Type checking verification
+4. Serialization/deserialization tests
+
+## Related Files
+- `../lib/api-client/parser.ts` - Response parsing using these models
+- `../lib/tools/*.ts` - MCP tools that consume these models
+- `../lib/api-client/endpoints.ts` - API response type definitions
+- `../services/data-service.ts` - Business logic using these models

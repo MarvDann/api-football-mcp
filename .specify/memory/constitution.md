@@ -1,50 +1,41 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# API Football MCP Server Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. MCP Protocol Compliance
+Server must implement the Model Context Protocol (MCP) specification; All communication via JSON-RPC 2.0 over stdio; Support standard MCP lifecycle: initialize → resources/tools/prompts → execute → shutdown
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. TypeScript-First Development
+Written in TypeScript with strict type checking enabled; Use @modelcontextprotocol/sdk for MCP implementation; Maintain type safety across all API interactions and responses
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Football Data Focus
+Provide comprehensive football/soccer data via API-Football service; Support leagues, teams, players, fixtures, and statistics; Enable real-time and historical data access
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Error Handling & Resilience
+Graceful error handling for API failures and rate limits; Clear error messages following MCP error format; Implement retry logic with exponential backoff for transient failures
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Security & Configuration
+API keys stored securely via environment variables; Never expose sensitive data in logs or responses; Support configuration via standard MCP configuration files
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technical Requirements
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- **Runtime**: Node.js 22+ with TypeScript 5+
+- **Dependencies**: @modelcontextprotocol/sdk
+- **Build System**: TypeScript compiler with CommonJS/ESM output
+- **Testing**: Vitest for unit tests, integration tests for MCP protocol
+- **API Integration**: API-Football v3 endpoints with proper authentication via header `x-apisports-key`
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Standards
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- Follow MCP SDK patterns and best practices
+- Implement comprehensive logging with appropriate levels
+- Document all tools, resources, and prompts with clear descriptions
+- Validate all inputs and sanitize outputs
+- Handle rate limiting and quota management
+- Cache responses where appropriate to minimize API calls
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Constitution defines minimum viable MCP server implementation; All features must maintain MCP protocol compatibility; Changes to core protocol handling require careful testing
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-01-14 | **Last Amended**: 2025-01-14
