@@ -36,7 +36,7 @@ A Model Context Protocol (MCP) server providing Premier League football data (19
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/MarvDann/api-football-mcp.git
    cd api-football-mcp
    ```
 
@@ -47,8 +47,11 @@ A Model Context Protocol (MCP) server providing Premier League football data (19
 
 3. **Configure environment**
    ```bash
-   cp .env.example .env
-   # Edit .env and add your API_FOOTBALL_KEY
+   # Set your API key as an environment variable
+   export API_FOOTBALL_KEY=your_api_key_here
+
+   # Or create a .env file
+   echo "API_FOOTBALL_KEY=your_api_key_here" > .env
    ```
 
 4. **Build the project**
@@ -374,13 +377,13 @@ pnpm start
 
 ## License
 
-[Insert License]
+MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Issues**: Report bugs via GitHub Issues
-- **Documentation**: See `/docs` for detailed guides
+- **Issues**: Report bugs via [GitHub Issues](https://github.com/MarvDann/api-football-mcp/issues)
 - **API Reference**: [API-Football Documentation](https://www.api-football.com/documentation-v3)
+- **MCP Protocol**: [Model Context Protocol Specification](https://modelcontextprotocol.io/)
 
 ---
 

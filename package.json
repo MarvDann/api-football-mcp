@@ -34,7 +34,18 @@
     "soccer",
     "typescript"
   ],
-  "author": "Claude Code",
+  "author": {
+    "name": "MarvDann",
+    "url": "https://github.com/MarvDann"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MarvDann/api-football-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MarvDann/api-football-mcp/issues"
+  },
+  "homepage": "https://github.com/MarvDann/api-football-mcp#readme",
   "license": "MIT",
   "engines": {
     "node": ">=22.0.0"
