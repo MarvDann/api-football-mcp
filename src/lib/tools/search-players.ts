@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
+import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
 
 export interface SearchPlayersParams {
@@ -178,8 +179,7 @@ export class SearchPlayersTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in search_players', error as any)
+      logger.error('Error in search_players', error as Error)
 
       return {
         content: [{

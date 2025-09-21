@@ -35,7 +35,7 @@ describe('Contract: get_live_matches tool', () => {
     const result = await getLiveMatchesTool.call({ params: {} } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(Array.isArray(payload.fixtures)).toBe(true)
     expect(payload.total).toBe(payload.fixtures.length)

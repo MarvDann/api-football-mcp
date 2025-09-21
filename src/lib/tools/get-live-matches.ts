@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseFixture } from '../api-client/parser'
+import { logger } from '../logger/logger'
 
 export interface GetLiveMatchesResult {
   fixtures: any[]
@@ -72,8 +73,7 @@ export class GetLiveMatchesTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in get_live_matches', error as any)
+      logger.error('Error in get_live_matches', error as Error)
 
       return {
         content: [{

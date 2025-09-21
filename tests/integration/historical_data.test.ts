@@ -34,7 +34,7 @@ describe('Integration: Query historical 1992-93 season', () => {
     const firstSeason = 1992
 
     try {
-      const standings = await standingsTool.call({ params: { season: firstSeason } })
+      const standings = await standingsTool.call({ params: { season: firstSeason } } as any)
       expect(standings).toBeDefined()
     } catch (error: any) {
       // If API key is missing or invalid, check that we handle it gracefully
@@ -51,7 +51,7 @@ describe('Integration: Query historical 1992-93 season', () => {
     const firstSeason = 1992
 
     try {
-      const fixtures = await fixturesTool.call({ params: { season: firstSeason } })
+      const fixtures = await fixturesTool.call({ params: { season: firstSeason } } as any)
       expect(fixtures).toBeDefined()
     } catch (error: any) {
       // If API key is missing or invalid, check that we handle it gracefully
@@ -74,7 +74,7 @@ describe('Integration: Query historical 1992-93 season', () => {
     // Sheffield Wednesday, Southampton, Tottenham Hotspur, Wimbledon
 
     try {
-      const teams = await teamsTool.call({ params: { season: firstSeason } })
+      const teams = await teamsTool.call({ params: { season: firstSeason } } as any)
       expect(teams).toBeDefined()
     } catch (error: any) {
       // If API key is missing or invalid, check that we handle it gracefully
@@ -91,7 +91,7 @@ describe('Integration: Query historical 1992-93 season', () => {
     const firstSeason = 1992
 
     try {
-      const players = await playersTool.call({ params: { season: firstSeason, name: 'Ryan' } })
+      const players = await playersTool.call({ params: { season: firstSeason, name: 'Ryan' } } as any)
       expect(players).toBeDefined()
     } catch (error: any) {
       // If API key is missing or invalid, check that we handle it gracefully
@@ -110,7 +110,7 @@ describe('Integration: Query historical 1992-93 season', () => {
     // Test that tools accept season parameters
     for (const season of seasons) {
       try {
-        const result = await standingsTool.call({ params: { season } })
+        const result = await standingsTool.call({ params: { season } } as any)
         expect(result).toBeDefined()
       } catch (error: any) {
         // If API key is missing or invalid, check that we handle it gracefully
@@ -150,7 +150,7 @@ describe('Integration: Query historical 1992-93 season', () => {
 
     try {
       // Test pre-Premier League season - should handle gracefully
-      await standingsTool.call({ params: { season: prePremierLeague } })
+      await standingsTool.call({ params: { season: prePremierLeague } } as any)
     } catch (error: any) {
       // Should provide meaningful validation error
       expect(error).toBeDefined()
@@ -158,7 +158,7 @@ describe('Integration: Query historical 1992-93 season', () => {
 
     try {
       // Test future season - should handle gracefully
-      await standingsTool.call({ params: { season: futureSeason } })
+      await standingsTool.call({ params: { season: futureSeason } } as any)
     } catch (error: any) {
       // Should provide meaningful validation error or empty results
       expect(error).toBeDefined()
@@ -184,7 +184,7 @@ describe('Integration: Query historical 1992-93 season', () => {
     // for different historical periods
 
     try {
-      const result = await standingsTool.call({ params: { season: 1992 } })
+      const result = await standingsTool.call({ params: { season: 1992 } } as any)
       // Result should indicate whether data is available
       expect(result).toBeDefined()
 

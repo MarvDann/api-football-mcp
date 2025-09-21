@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseMatchEvent, parseFixture } from '../api-client/parser'
+import { logger } from '../logger/logger'
 
 export interface GetMatchGoalsParams {
   fixtureId: number
@@ -65,8 +66,7 @@ export class GetMatchGoalsTool implements Tool {
 
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in get_match_goals', error as any)
+      logger.error('Error in get_match_goals', error as Error)
       return { content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}` }], isError: true }
     }
   }

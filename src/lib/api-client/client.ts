@@ -1,5 +1,7 @@
 import { API_ENDPOINTS, API_HEADERS, PREMIER_LEAGUE_ID, ApiEndpointParams, ApiResponse, ApiError } from './endpoints'
-import { withRetry, RetryConfig, DEFAULT_RETRY_CONFIG, RetryableError, RateLimitTracker, sleep } from './retry'
+import { FixtureAPI, PlayersResponseItemAPI, LeagueStandingsAPI, TeamResponseItemAPI, MatchEventAPI } from '../../types/api-football'
+import { withRetry, DEFAULT_RETRY_CONFIG, RetryableError, RateLimitTracker, sleep } from './retry'
+import type { RetryConfig } from '../../types/api'
 
 export interface APIFootballClientConfig {
   apiKey: string
@@ -36,7 +38,7 @@ export class APIFootballClient {
         'x-ratelimit-requests-limit': '60',
         'x-ratelimit-requests-remaining': '60',
         'x-ratelimit-requests-reset': String(resetInSeconds)
-      } as any)
+      } as Record<string, string>)
     }
   }
 
@@ -86,7 +88,7 @@ export class APIFootballClient {
           const error: ApiError = {
             message: `HTTP ${response.status}: ${response.statusText}`,
             status: response.status,
-            headers: Object.fromEntries(response.headers.entries()) as any
+            headers: Object.fromEntries(response.headers.entries())
           }
 
           if (response.status === 429) {
@@ -135,7 +137,7 @@ export class APIFootballClient {
   }
 
   // Standings
-  async getStandings (season?: number): Promise<ApiResponse<any[]>> {
+  async getStandings (season?: number): Promise<ApiResponse<LeagueStandingsAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.STANDINGS, {
       league: PREMIER_LEAGUE_ID,
       season: season ?? new Date().getFullYear()
@@ -152,13 +154,13 @@ export class APIFootballClient {
     date?: string
     status?: string
     round?: string
-  } = {}): Promise<ApiResponse<any[]>> {
+  } = {}): Promise<ApiResponse<FixtureAPI[]>> {
     // If an explicit fixture id is provided, query by id only per API docs
     if (params.id) {
       return this.makeRequest(API_ENDPOINTS.FIXTURES, { id: params.id })
     }
 
-    const requestParams: any = {
+    const requestParams: Record<string, string | number> = {
       league: PREMIER_LEAGUE_ID
     }
 
@@ -181,28 +183,28 @@ export class APIFootballClient {
     return this.makeRequest(API_ENDPOINTS.FIXTURES, requestParams)
   }
 
-  async getLiveFixtures (): Promise<ApiResponse<any[]>> {
+  async getLiveFixtures (): Promise<ApiResponse<FixtureAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.FIXTURES_LIVE, {
       league: PREMIER_LEAGUE_ID
     })
   }
 
   // Teams
-  async getTeams (season?: number): Promise<ApiResponse<any[]>> {
+  async getTeams (season?: number): Promise<ApiResponse<TeamResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.TEAMS, {
       league: PREMIER_LEAGUE_ID,
       season: season ?? new Date().getFullYear()
     })
   }
 
-  async getTeam (teamId: number, season?: number): Promise<ApiResponse<any[]>> {
+  async getTeam (teamId: number, season?: number): Promise<ApiResponse<TeamResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.TEAMS, {
       id: teamId,
       ...(season && { season })
     })
   }
 
-  async searchTeams (query: string): Promise<ApiResponse<any[]>> {
+  async searchTeams (query: string): Promise<ApiResponse<TeamResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.TEAMS, {
       league: PREMIER_LEAGUE_ID,
       search: query
@@ -215,14 +217,14 @@ export class APIFootballClient {
     season?: number
     search?: string
     page?: number
-  } = {}): Promise<ApiResponse<any[]>> {
+  } = {}): Promise<ApiResponse<PlayersResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.PLAYERS, {
       league: PREMIER_LEAGUE_ID,
       ...params
     })
   }
 
-  async getPlayer (playerId: number, season?: number): Promise<ApiResponse<any[]>> {
+  async getPlayer (playerId: number, season?: number): Promise<ApiResponse<PlayersResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.PLAYERS, {
       id: playerId,
       ...(season && { season })
@@ -233,7 +235,7 @@ export class APIFootballClient {
     team?: number
     season?: number
     page?: number
-  } = {}): Promise<ApiResponse<any[]>> {
+  } = {}): Promise<ApiResponse<PlayersResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.PLAYERS, {
       league: PREMIER_LEAGUE_ID,
       search: query,
@@ -241,7 +243,7 @@ export class APIFootballClient {
     })
   }
 
-  async getSquad (teamId: number, season?: number): Promise<ApiResponse<any[]>> {
+  async getSquad (teamId: number, season?: number): Promise<ApiResponse<PlayersResponseItemAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.PLAYERS_SQUADS, {
       team: teamId,
       ...(season && { season })
@@ -249,7 +251,7 @@ export class APIFootballClient {
   }
 
   // Match Events
-  async getFixtureEvents (fixtureId: number): Promise<ApiResponse<any[]>> {
+  async getFixtureEvents (fixtureId: number): Promise<ApiResponse<MatchEventAPI[]>> {
     return this.makeRequest(API_ENDPOINTS.FIXTURES_EVENTS, {
       fixture: fixtureId
     })

@@ -207,7 +207,6 @@ export class LRUCache<T = any> {
 
   // Cleanup expired entries
   private cleanup (): void {
-    const now = Date.now()
     const keysToDelete: string[] = []
 
     for (const [key, entry] of this.cache.entries()) {
@@ -222,7 +221,9 @@ export class LRUCache<T = any> {
     })
 
     if (keysToDelete.length > 0) {
-      console.debug(`Cache cleanup: removed ${keysToDelete.length} expired entries`)
+      import('../logger/logger').then(({ logger }) => {
+        logger.debug(`Cache cleanup: removed ${keysToDelete.length} expired entries`)
+      }).catch(() => {})
     }
   }
 

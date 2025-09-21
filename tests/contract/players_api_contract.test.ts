@@ -37,7 +37,7 @@ describe('API Contract: players endpoint', () => {
   it('enforces league parameter when searching players', async () => {
     await client.searchPlayers('Haaland', { season: 2024 })
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.pathname).toBe('/players')
@@ -49,7 +49,7 @@ describe('API Contract: players endpoint', () => {
   it('requires season when fetching player by id per API documentation', async () => {
     await client.getPlayer(278, 2024)
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.searchParams.get('id')).toBe('278')
@@ -59,7 +59,7 @@ describe('API Contract: players endpoint', () => {
   it('supports querying player lists by team and season', async () => {
     await client.getPlayers({ team: 33, season: 2024, page: 2 })
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.searchParams.get('team')).toBe('33')

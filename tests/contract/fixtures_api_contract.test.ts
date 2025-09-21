@@ -38,7 +38,7 @@ describe('API Contract: fixtures endpoint', () => {
     await client.getFixtures({ season: 2024, status: 'FT', team: 33 })
 
     expect(fetchMock).toHaveBeenCalled()
-    const [rawUrl, options] = fetchMock.mock.calls[0]
+    const [rawUrl, options] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.pathname).toBe('/fixtures')
@@ -56,7 +56,7 @@ describe('API Contract: fixtures endpoint', () => {
   it('adds season automatically when querying by date range per API expectations', async () => {
     await client.getFixtures({ from: '2025-01-01', to: '2025-01-05' })
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.searchParams.get('season')).toBe(String(new Date().getFullYear()))

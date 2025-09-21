@@ -3,7 +3,7 @@ import { APIFootballClient } from '../../src/lib/api-client/client'
 import { LRUCache } from '../../src/lib/cache/lru-cache'
 import { GetPlayerTool } from '../../src/lib/tools/get-player'
 import { SearchPlayersTool } from '../../src/lib/tools/search-players'
-import { delayedApiCall, expectToolSuccess, testWithRateLimit } from '../helpers/api_test_helpers'
+import { delayedApiCall, expectToolSuccess, testWithRateLimit, checkRateLimit } from '../helpers/api_test_helpers'
 
 describe('Integration: Search player by name and get stats', () => {
   let apiClient: APIFootballClient
@@ -35,14 +35,14 @@ describe('Integration: Search player by name and get stats', () => {
       const season = 2024
 
       // Test getting player by ID with delay
-      const playerById = await delayedApiCall(() => getPlayerTool.call({ params: { playerId, season } }))
+      const playerById = await delayedApiCall(() => getPlayerTool.call({ params: { playerId, season } } as any))
 
       // Use expectToolSuccess to avoid false positives
       expectToolSuccess(playerById, 'player by ID', true)
 
       // Validate response structure
-      expect(playerById.content[0].type).toBe('text')
-      const responseData = JSON.parse(playerById.content[0].text)
+      expect(playerById.content?.[0]?.type).toBe('text')
+      const responseData = JSON.parse(((playerById.content[0] as any).text as string))
       expect(responseData).toBeDefined()
       expect(responseData.player || responseData.error).toBeDefined()
     }
@@ -59,10 +59,10 @@ describe('Integration: Search player by name and get stats', () => {
     try {
       const searchResults = await delayedApiCall(() => searchPlayersTool.call({
         params: { query: 'Saka', season: 2024 }
-      }))
+      } as any))
 
       if (searchResults.content?.[0]?.text) {
-        const responseData = JSON.parse(searchResults.content[0].text)
+        const responseData = JSON.parse(((searchResults.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping partial name search test due to rate limiting')
@@ -93,10 +93,10 @@ describe('Integration: Search player by name and get stats', () => {
     try {
       const searchResults = await delayedApiCall(() => searchPlayersTool.call({
         params: { position: 'Attacker', season: 2024 }
-      }))
+      } as any))
 
       if (searchResults.content?.[0]?.text) {
-        const responseData = JSON.parse(searchResults.content[0].text)
+        const responseData = JSON.parse(((searchResults.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping position filter test due to rate limiting')
@@ -127,10 +127,10 @@ describe('Integration: Search player by name and get stats', () => {
     try {
       const searchResults = await delayedApiCall(() => searchPlayersTool.call({
         params: { teamId: 42, season: 2024 } // Arsenal
-      }))
+      } as any))
 
       if (searchResults.content?.[0]?.text) {
-        const responseData = JSON.parse(searchResults.content[0].text)
+        const responseData = JSON.parse(((searchResults.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping team filter test due to rate limiting')
@@ -164,10 +164,10 @@ describe('Integration: Search player by name and get stats', () => {
     }
 
     try {
-      const playerStats = await delayedApiCall(() => getPlayerTool.call({ params: { playerId, season } }))
+      const playerStats = await delayedApiCall(() => getPlayerTool.call({ params: { playerId, season } } as any))
 
       if (playerStats.content?.[0]?.text) {
-        const responseData = JSON.parse(playerStats.content[0].text)
+        const responseData = JSON.parse(((playerStats.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping player statistics test due to rate limiting')
@@ -199,10 +199,10 @@ describe('Integration: Search player by name and get stats', () => {
     try {
       const searchResults = await delayedApiCall(() => searchPlayersTool.call({
         params: { query: 'Saka', season: 2023 }
-      }))
+      } as any))
 
       if (searchResults.content?.[0]?.text) {
-        const responseData = JSON.parse(searchResults.content[0].text)
+        const responseData = JSON.parse(((searchResults.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping season parameter test due to rate limiting')
@@ -233,10 +233,10 @@ describe('Integration: Search player by name and get stats', () => {
     try {
       const searchResults = await delayedApiCall(() => searchPlayersTool.call({
         params: { query: 'NonExistentPlayer', season: 2024 }
-      }))
+      } as any))
 
       if (searchResults.content?.[0]?.text) {
-        const responseData = JSON.parse(searchResults.content[0].text)
+        const responseData = JSON.parse(((searchResults.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping non-existent player test due to rate limiting')
@@ -270,10 +270,10 @@ describe('Integration: Search player by name and get stats', () => {
     }
 
     try {
-      const playerData = await delayedApiCall(() => getPlayerTool.call({ params: { playerId, season } }))
+      const playerData = await delayedApiCall(() => getPlayerTool.call({ params: { playerId, season } } as any))
 
       if (playerData.content?.[0]?.text) {
-        const responseData = JSON.parse(playerData.content[0].text)
+        const responseData = JSON.parse(((playerData.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping data structure test due to rate limiting')
@@ -281,9 +281,9 @@ describe('Integration: Search player by name and get stats', () => {
         } else {
           expect(playerData).toBeDefined()
           expect(playerData.content).toBeDefined()
-          expect(playerData.content[0].type).toBe('text')
+          expect(playerData.content?.[0]?.type).toBe('text')
           // Should be valid JSON
-          expect(() => JSON.parse(playerData.content[0].text)).not.toThrow()
+          expect(() => JSON.parse(((playerData.content[0] as any).text as string))).not.toThrow()
         }
       }
     } catch (error: any) {

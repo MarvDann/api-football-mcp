@@ -19,7 +19,7 @@ export const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, ms))
 
 // Check if response indicates rate limiting
-export function checkRateLimit(data: any): RateLimitInfo {
+export function checkRateLimit (data: any): RateLimitInfo {
   if (data.errors && typeof data.errors === 'object') {
     // Check for rate limit error message
     if (data.errors.rateLimit ||
@@ -45,7 +45,7 @@ export function checkRateLimit(data: any): RateLimitInfo {
 }
 
 // Make API call with rate limiting respect
-export async function makeApiCall(
+export async function makeApiCall (
   url: string,
   apiKey: string,
   retryOnLimit = true,
@@ -79,7 +79,7 @@ export async function makeApiCall(
 }
 
 // Expect API error with rate limit handling - throws to skip test properly
-export function expectApiError(
+export function expectApiError (
   data: any,
   expectedError: Record<string, string>,
   testName: string
@@ -99,7 +99,7 @@ export function expectApiError(
 }
 
 // Expect API success with rate limit handling - throws to skip test properly
-export function expectApiSuccess(
+export function expectApiSuccess (
   data: any,
   testName: string,
   minResults = 0
@@ -120,7 +120,7 @@ export function expectApiSuccess(
 }
 
 // Enhanced tool result checker that avoids false positives
-export function expectToolSuccess(
+export function expectToolSuccess (
   toolResult: any,
   testName: string,
   requireContent = true
@@ -164,7 +164,7 @@ export function expectToolSuccess(
 // Add delay between API calls to respect rate limits
 export const API_CALL_DELAY = 3500 // 3.5 seconds between calls to respect rate limits
 
-export async function delayedApiCall<T>(
+export async function delayedApiCall<T> (
   fn: () => Promise<T>,
   delay = API_CALL_DELAY
 ): Promise<T> {
@@ -173,7 +173,7 @@ export async function delayedApiCall<T>(
 }
 
 // Test wrapper that properly handles rate limiting without false positives
-export function testWithRateLimit(
+export function testWithRateLimit (
   testName: string,
   testFn: () => Promise<void>,
   timeout = 60000

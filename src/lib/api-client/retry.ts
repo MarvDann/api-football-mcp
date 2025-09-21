@@ -1,10 +1,4 @@
-export interface RetryConfig {
-  maxRetries: number
-  baseDelay: number
-  maxDelay: number
-  backoffMultiplier: number
-  jitterMax: number
-}
+import { RetryConfig } from '../../types/api'
 
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
@@ -69,6 +63,8 @@ export async function sleep (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+import { logger } from '../logger/logger'
+
 export async function withRetry<T> (
   operation: () => Promise<T>,
   config: RetryConfig = DEFAULT_RETRY_CONFIG
@@ -94,7 +90,7 @@ export async function withRetry<T> (
         // RetryableError is explicitly retryable, continue to retry
       } else {
         // For non-RetryableError instances, check if status code is retryable
-        const statusCode = (error as any).statusCode || (error as any).status
+        const statusCode = (error as { statusCode?: number; status?: number }).statusCode ?? (error as { status?: number }).status
         if (!statusCode || !isRetryableStatusCode(statusCode)) {
           throw error // Don't retry regular errors without retryable status codes
         }
@@ -102,7 +98,7 @@ export async function withRetry<T> (
 
       // Calculate delay and wait
       const delay = calculateDelay(attempt, config)
-      console.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, lastError.message)
+      logger.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`)
       await sleep(delay)
     }
   }

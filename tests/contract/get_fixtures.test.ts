@@ -37,7 +37,7 @@ describe('Contract: get_fixtures tool', () => {
     expect(result.isError).toBeUndefined()
     expect(result.content).toHaveLength(1)
 
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload).toHaveProperty('fixtures')
     expect(Array.isArray(payload.fixtures)).toBe(true)
@@ -100,7 +100,7 @@ describe('Contract: get_fixtures tool', () => {
     } as any)
 
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('from" date must be before or equal to')
+    expect(((result.content[0] as any).text as string)).toContain('from" date must be before or equal to')
     expect(mockApiClient.getFixtures).not.toHaveBeenCalled()
   })
 })

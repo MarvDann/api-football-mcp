@@ -21,7 +21,32 @@ class MockAPIFootballClient extends APIFootballClient {
       parameters: { league: '39', season: season?.toString() ?? '2023' },
       errors: [],
       results: 1,
-      response: [{ team: { id: 1, name: 'Test Team' }, points: 10 }],
+      response: [
+        {
+          league: {
+            id: 39,
+            name: 'Premier League',
+            country: 'England',
+            logo: '',
+            flag: '',
+            season: season ?? 2023,
+            standings: [[{
+              rank: 1,
+              team: { id: 1, name: 'Test Team', logo: '' },
+              points: 10,
+              goalsDiff: 5,
+              group: 'Premier League',
+              form: 'WWWWW',
+              status: 'same',
+              description: 'Test',
+              all: { played: 5, win: 5, draw: 0, lose: 0, goals: { for: 10, against: 5 } },
+              home: { played: 3, win: 3, draw: 0, lose: 0, goals: { for: 6, against: 2 } },
+              away: { played: 2, win: 2, draw: 0, lose: 0, goals: { for: 4, against: 3 } },
+              update: new Date().toISOString()
+            }]]
+          }
+        }
+      ],
       paging: { current: 1, total: 1 }
     }
   }
@@ -33,7 +58,20 @@ class MockAPIFootballClient extends APIFootballClient {
       parameters: { league: '39', ...params },
       errors: [],
       results: 1,
-      response: [{ fixture: { id: 1, date: '2023-01-01' } }],
+      response: [{
+        fixture: {
+          id: 1,
+          date: '2023-01-01T00:00:00Z',
+          timestamp: 1672531200,
+          status: { long: 'Match Finished', short: 'FT', elapsed: 90 },
+          referee: 'Test Ref',
+          timezone: 'UTC'
+        },
+        league: { id: 39, name: 'Premier League', season: params?.season ?? 2023, round: 'Regular Season - 1', country: 'England', logo: '', flag: '' },
+        teams: { home: { id: 1, name: 'Home' }, away: { id: 2, name: 'Away' } },
+        goals: { home: 1, away: 0 },
+        score: { halftime: { home: 1, away: 0 }, fulltime: { home: 1, away: 0 } }
+      }],
       paging: { current: 1, total: 1 }
     }
   }
@@ -45,7 +83,7 @@ class MockAPIFootballClient extends APIFootballClient {
       parameters: { league: '39', season: season?.toString() ?? '2023' },
       errors: [],
       results: 1,
-      response: [{ team: { id: 1, name: 'Test Team' } }],
+      response: [{ team: { id: 1, name: 'Test Team', country: 'England', logo: '' }, venue: { id: 1, name: 'Stadium', city: 'City' } }],
       paging: { current: 1, total: 1 }
     }
   }
@@ -57,7 +95,22 @@ class MockAPIFootballClient extends APIFootballClient {
       parameters: { league: '39', ...params },
       errors: [],
       results: 1,
-      response: [{ player: { id: 1, name: 'Test Player' } }],
+      response: [{
+        player: {
+          id: 1,
+          name: 'Test Player',
+          firstname: 'Test',
+          lastname: 'Player',
+          age: 25,
+          birth: { date: '2000-01-01', place: 'City', country: 'Country' },
+          nationality: 'Country',
+          height: '180 cm',
+          weight: '75 kg',
+          injured: false,
+          photo: ''
+        },
+        statistics: []
+      }],
       paging: { current: 1, total: 1 }
     }
   }

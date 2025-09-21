@@ -42,7 +42,7 @@ describe('Contract: get_match_goals tool', () => {
     const result = await getMatchEventsTool.call({ params: { fixtureId: 1200001 } } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload.fixture).toMatchObject({
       id: 1200001,
@@ -90,7 +90,7 @@ describe('Contract: get_match_goals tool', () => {
   it('rejects invalid fixture identifiers before hitting the API', async () => {
     const result = await getMatchEventsTool.call({ params: { fixtureId: -5 } } as any)
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('fixtureId must be a positive number')
+    expect(((result.content[0] as any).text as string)).toContain('fixtureId must be a positive number')
     expect(mockApiClient.getFixtureEvents).not.toHaveBeenCalled()
   })
 })

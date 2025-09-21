@@ -33,9 +33,12 @@ API keys stored securely via environment variables; Never expose sensitive data 
 - Validate all inputs and sanitize outputs
 - Handle rate limiting and quota management
 - Cache responses where appropriate to minimize API calls
+- Define TypeScript types and interfaces in dedicated files (e.g., `src/types/` or model-specific files) rather than inline; avoid `any` and prefer precise interfaces for API requests/responses and tool payloads
+- Place all `import` declarations at the top of each file; avoid dynamic imports except when strictly necessary (e.g., optional dependencies or to break circular references) and annotate such cases with a brief justification comment
+- After each development phase or significant change, run linting (`pnpm run lint:check`) and fix all linting errors before proceeding. Warnings should be triaged and addressed progressively with priority on production code paths.
 
 ## Governance
 
 Constitution defines minimum viable MCP server implementation; All features must maintain MCP protocol compatibility; Changes to core protocol handling require careful testing
 
-**Version**: 1.0.0 | **Ratified**: 2025-01-14 | **Last Amended**: 2025-01-14
+**Version**: 1.0.0 | **Ratified**: 2025-01-14 | **Last Amended**: 2025-09-21

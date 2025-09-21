@@ -41,7 +41,13 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        args: 'all',
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: '^_'
+      }],
       '@typescript-eslint/no-non-null-assertion': 'warn',
 
       // Disable overly strict rules that don't affect functionality
@@ -74,7 +80,10 @@ export default tseslint.config(
   {
     files: ['tests/**/*'],
     rules: {
-      'no-console': 'off'
+      'no-console': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unused-vars': 'off'
     }
   }
 )

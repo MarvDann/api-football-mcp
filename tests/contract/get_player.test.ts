@@ -41,7 +41,7 @@ describe('Contract: get_player tool', () => {
     const result = await getPlayerTool.call({ params: { playerId: 278, season: 2024 } } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload.player).toMatchObject({
       id: 278,
@@ -79,7 +79,7 @@ describe('Contract: get_player tool', () => {
     const result = await getPlayerTool.call({ params: { name: 'Marcus Rashford', season: 2024 } } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload.player.name).toBe('Marcus Rashford')
     expect(mockApiClient.searchPlayers).toHaveBeenCalledWith('Marcus Rashford', {
@@ -92,6 +92,6 @@ describe('Contract: get_player tool', () => {
     const result = await getPlayerTool.call({ params: {} } as any)
 
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('Either playerId or name must be provided')
+    expect(((result.content[0] as any).text as string)).toContain('Either playerId or name must be provided')
   })
 })

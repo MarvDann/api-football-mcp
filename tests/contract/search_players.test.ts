@@ -44,7 +44,7 @@ describe('Contract: search_players tool', () => {
     } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(Array.isArray(payload.players)).toBe(true)
     expect(payload.total).toBe(payload.players.length)
@@ -91,7 +91,7 @@ describe('Contract: search_players tool', () => {
     } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload.players.every((player: any) => player.position === 'Attacker')).toBe(true)
   })

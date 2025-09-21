@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
+import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
 
 export interface GetPlayerParams {
@@ -96,9 +97,10 @@ export class GetPlayerTool implements Tool {
 
         if (searchResponse.response && searchResponse.response.length > 0) {
           // Find exact match or closest match
+          const queryName = params.name.toLowerCase()
           const exactMatch = searchResponse.response.find((p: any) =>
-            p.player.name.toLowerCase() === params.name!.toLowerCase() ||
-            `${p.player.firstname} ${p.player.lastname}`.toLowerCase() === params.name!.toLowerCase()
+            p.player.name.toLowerCase() === queryName ||
+            `${p.player.firstname} ${p.player.lastname}`.toLowerCase() === queryName
           )
 
           if (exactMatch) {
@@ -106,8 +108,11 @@ export class GetPlayerTool implements Tool {
             playerId = playerData.player.id
           } else {
             // Use first result as closest match
-            playerData = searchResponse.response[0]
-            playerId = playerData.player.id
+            const first = searchResponse.response[0]
+            if (first) {
+              playerData = first
+              playerId = playerData.player.id
+            }
           }
         }
       }
@@ -198,8 +203,7 @@ export class GetPlayerTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in get_player', error as any)
+      logger.error('Error in get_player', error as Error)
 
       return {
         content: [{

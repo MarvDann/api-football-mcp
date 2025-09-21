@@ -37,7 +37,7 @@ describe('API Contract: teams endpoint', () => {
   it('fetches teams for the Premier League when requesting a season roster', async () => {
     await client.getTeams(2024)
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.pathname).toBe('/teams')
@@ -48,7 +48,7 @@ describe('API Contract: teams endpoint', () => {
   it('fetches a specific team by id without unnecessary parameters', async () => {
     await client.getTeam(33, 2024)
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.searchParams.get('id')).toBe('33')
@@ -59,7 +59,7 @@ describe('API Contract: teams endpoint', () => {
   it('scopes team search to the Premier League', async () => {
     await client.searchTeams('Arsenal')
 
-    const [rawUrl] = fetchMock.mock.calls[0]
+    const [rawUrl] = fetchMock.mock.calls[0]!
     const url = new URL(rawUrl as string)
 
     expect(url.pathname).toBe('/teams')

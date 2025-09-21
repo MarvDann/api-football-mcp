@@ -1,4 +1,5 @@
 // Error handling utilities
+import { logger } from '../logger/logger'
 
 export class AppError extends Error {
   constructor (
@@ -103,7 +104,7 @@ export function createErrorHandler (context: string) {
       throw new AppError(errorMessage, formatted.code ?? 'OPERATIONAL_ERROR')
     } else {
       // Programming errors should be logged and re-thrown
-      console.error(`Unexpected error in ${context}:`, formatted.stack ?? errorMessage)
+      logger.error(`Unexpected error in ${context}: ${formatted.stack ?? errorMessage}`)
       throw new AppError('An unexpected error occurred', 'INTERNAL_ERROR', 500, false)
     }
   }
@@ -143,4 +144,3 @@ export function safeAsync<T extends unknown[], R> (
 export function isAsync (fn: unknown): fn is (...args: unknown[]) => Promise<unknown> {
   return typeof fn === 'function' && fn.constructor.name === 'AsyncFunction'
 }
-

@@ -2,6 +2,7 @@
 
 import { APIFootballClient } from '../lib/api-client/client'
 import { createConsoleLogger } from '../lib/logger/logger'
+import { isEventArray, isPlayersArray, isFixtureArray, MatchEventAPI, PlayersResponseItemAPI, FixtureAPI } from '../types/guards'
 import { ValidationError, safeAsync } from '../lib/errors/errors'
 import { safeString } from '../lib/utils/string-utils'
 import { getNextArg, parseKeyValuePair, validateChoice } from '../lib/utils/cli-args'
@@ -350,67 +351,66 @@ const main = safeAsync(async (): Promise<void> => {
   }
 
   if (response.response) {
-    let payload: any = response.response
+    let payload: unknown = response.response
 
     // Smart table formatting for fixtures
-    if (options.endpoint === 'fixtures' && options.format === 'table' && Array.isArray(payload)) {
-      payload = payload.map((f: any) => ({
-        id: f.fixture?.id,
-        date: (f.fixture?.date || '').slice(0, 10),
-        round: f.league?.round,
-        home: f.teams?.home?.name,
-        away: f.teams?.away?.name,
-        score: `${f.goals?.home ?? '-'}-${f.goals?.away ?? '-'}`,
-        status: f.fixture?.status?.short
+    if (options.endpoint === 'fixtures' && options.format === 'table' && isFixtureArray(payload)) {
+      const fixtures: FixtureAPI[] = payload
+      payload = fixtures.map(f => ({
+        id: f.fixture.id,
+        date: (f.fixture.date || '').slice(0, 10),
+        round: f.league.round,
+        home: f.teams.home.name,
+        away: f.teams.away.name,
+        score: `${f.goals.home ?? '-'}-${f.goals.away ?? '-'}`,
+        status: f.fixture.status.short
       }))
     }
 
     // Filter events to goals only, and optionally render a concise table
-    if (options.endpoint === 'goals' && Array.isArray(payload)) {
-      payload = payload.filter((e: any) => (e?.type || '').toLowerCase() === 'goal')
+    if (options.endpoint === 'goals' && isEventArray(payload)) {
+      const events: MatchEventAPI[] = payload.filter(e => (e.type || '').toLowerCase() === 'goal')
 
       if (options.format === 'table') {
-        payload = payload.map((e: any) => ({
-          min: e?.time?.elapsed,
-          team: e?.team?.name,
-          scorer: e?.player?.name,
-          assist: e?.assist?.name || '',
-          detail: e?.detail
+        payload = events.map(e => ({
+          min: e.time.elapsed,
+          team: e.team.name,
+          scorer: e.player.name,
+          assist: e.assist?.name || '',
+          detail: e.detail
         }))
+      } else {
+        payload = events
       }
     }
 
     // Transform squad output (derived from /players) to match players/squads fields
-    if (options.endpoint === 'squad' && Array.isArray(payload)) {
-      const basic = payload.map((p: any) => ({
-        id: p?.player?.id,
-        name: p?.player?.name,
-        firstname: p?.player?.firstname,
-        lastname: p?.player?.lastname,
-        age: p?.player?.age,
-        birthDate: p?.player?.birth?.date,
-        birthPlace: p?.player?.birth?.place,
-        birthCountry: p?.player?.birth?.country,
-        nationality: p?.player?.nationality,
-        height: p?.player?.height,
-        weight: p?.player?.weight,
-        injured: !!p?.player?.injured,
-        photo: p?.player?.photo
+    if (options.endpoint === 'squad' && isPlayersArray(payload)) {
+      const players: PlayersResponseItemAPI[] = payload
+      const basic = players.map(p => ({
+        id: p.player.id,
+        name: p.player.name,
+        firstname: p.player.firstname,
+        lastname: p.player.lastname,
+        age: p.player.age,
+        birthDate: p.player.birth.date,
+        birthPlace: p.player.birth.place,
+        birthCountry: p.player.birth.country,
+        nationality: p.player.nationality,
+        height: p.player.height,
+        weight: p.player.weight,
+        injured: p.player.injured,
+        photo: p.player.photo
       }))
 
-      if (options.format === 'table') {
-        // Keep order stable by returning array of objects with fixed keys
-        payload = basic
-      } else {
-        payload = basic
-      }
+      payload = basic
     }
 
     {
       const output = formatOutput(payload, options.format)
       if (options.format === 'table') {
         // Print raw table without the INFO: prefix so columns align
-        console.log(`\n${output}`)
+        process.stdout.write(`\n${output}\n`)
       } else {
         logger.info(output)
       }
@@ -418,7 +418,7 @@ const main = safeAsync(async (): Promise<void> => {
   } else {
     const output = formatOutput(response, options.format)
     if (options.format === 'table') {
-      console.log(`\n${output}`)
+      process.stdout.write(`\n${output}\n`)
     } else {
       logger.info(output)
     }

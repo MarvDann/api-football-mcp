@@ -29,9 +29,9 @@ describe('Integration: Get live match events', () => {
     // Then the system returns real-time match events and statistics
 
     try {
-      const liveMatches = await delayedApiCall(() => liveMatchesTool.call({ params: {} }))
-      if (liveMatches.content?.[0]?.text) {
-        const data = JSON.parse(liveMatches.content[0].text)
+      const liveMatches = await delayedApiCall(() => liveMatchesTool.call({ params: {} } as any))
+      if (liveMatches.content?.[0] && (liveMatches.content[0] as any).text) {
+        const data = JSON.parse(((liveMatches.content[0] as any).text as string))
         const rl = checkRateLimit(data)
         if (rl.isLimited) throw new Error('SKIP_TEST: Rate limited - live matches')
       }
@@ -51,7 +51,7 @@ describe('Integration: Get live match events', () => {
     const fixtureId = 12345
 
     try {
-      const events = await delayedApiCall(() => matchEventsTool.call({ params: { fixtureId } }))
+      const events = await delayedApiCall(() => matchEventsTool.call({ params: { fixtureId } } as any))
       expect(events).toBeDefined()
     } catch (error: any) {
       // If API key is missing or invalid, check that we handle it gracefully
@@ -68,7 +68,7 @@ describe('Integration: Get live match events', () => {
     // Should return empty fixtures array with total: 0
 
     try {
-      const result = await delayedApiCall(() => liveMatchesTool.call({ params: {} }))
+      const result = await delayedApiCall(() => liveMatchesTool.call({ params: {} } as any))
       // Should return valid response structure even when no matches
       expect(result).toBeDefined()
     } catch (error: any) {
@@ -94,7 +94,7 @@ describe('Integration: Get live match events', () => {
     // Test that live matches include elapsed time and status
 
     try {
-      const liveMatches = await delayedApiCall(() => liveMatchesTool.call({ params: {} }))
+      const liveMatches = await delayedApiCall(() => liveMatchesTool.call({ params: {} } as any))
       // Verify response structure supports elapsed time information
       expect(liveMatches).toBeDefined()
     } catch (error: any) {
@@ -127,7 +127,7 @@ describe('Integration: Get live match events', () => {
 
     try {
       // Test with invalid fixture ID
-      await matchEventsTool.call({ params: { fixtureId: -1 } })
+      await matchEventsTool.call({ params: { fixtureId: -1 } } as any)
     } catch (error: any) {
       // Should provide meaningful error for unavailable data
       expect(error).toBeDefined()
@@ -157,7 +157,7 @@ describe('Integration: Get live match events', () => {
 
     // Test concurrent requests to live matches
     const promises = Array(3).fill(null).map(() =>
-      liveMatchesTool.call({ params: {} }).catch(e => ({ error: e.message }))
+      liveMatchesTool.call({ params: {} } as any).catch(e => ({ error: e.message }))
     )
 
     const results = await Promise.all(promises)

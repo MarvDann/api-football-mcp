@@ -39,7 +39,7 @@ describe('Contract: search_teams tool', () => {
     const result = await searchTeamsTool.call({ params: { query: 'Arsenal' } } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(Array.isArray(payload.teams)).toBe(true)
     expect(payload.total).toBe(payload.teams.length)
@@ -70,7 +70,7 @@ describe('Contract: search_teams tool', () => {
     const result = await searchTeamsTool.call({ params: { season: 2024 } } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(mockApiClient.getTeams).toHaveBeenCalledWith(2024)
     expect(payload.teams.every((team: any) => team.country === 'England')).toBe(true)

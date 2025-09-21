@@ -4,16 +4,15 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseStanding } from '../api-client/parser'
+import { logger } from '../logger/logger'
 import { SEASON_CONFIG } from '../../models/season'
+import { GetStandingsResult } from '../../types/tool-results'
 
 export interface GetStandingsParams {
   season?: number
 }
 
-export interface GetStandingsResult {
-  standings: any[]
-  lastUpdated: string
-}
+// result type imported from types
 
 export class GetStandingsTool implements Tool {
   [key: string]: unknown
@@ -81,8 +80,8 @@ export class GetStandingsTool implements Tool {
       }
 
       // Parse and format the response
-      const leagueStandings = apiResponse.response[0]
-      const standings = leagueStandings.league.standings[0].map((item: any) => parseStanding(item))
+      const leagueStandings = apiResponse.response[0]!
+      const standings = leagueStandings.league.standings[0]!.map((item) => parseStanding(item))
 
       const result: GetStandingsResult = {
         standings,
@@ -101,8 +100,7 @@ export class GetStandingsTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in get_standings', error as any)
+      logger.error('Error in get_standings', error as Error)
 
       return {
         content: [{

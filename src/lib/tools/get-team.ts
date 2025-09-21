@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
+import { logger } from '../logger/logger'
 
 export interface GetTeamParams {
   teamId?: number
@@ -84,11 +85,13 @@ export class GetTeamTool implements Tool {
 
         if (apiResponse.response && apiResponse.response.length > 0) {
           const data = apiResponse.response[0]
-          team = {
-            ...data.team,
-            venue: data.venue || null
+          if (data) {
+            team = {
+              ...data.team,
+              venue: data.venue || null
+            }
+            teamId = data.team.id
           }
-          teamId = data.team.id
         }
       } else if (params.name) {
         // Search for team by name
@@ -96,16 +99,19 @@ export class GetTeamTool implements Tool {
 
         if (searchResponse.response && searchResponse.response.length > 0) {
           // Find exact match or closest match
+          const queryName = params.name.toLowerCase()
           const exactMatch = searchResponse.response.find((t: any) =>
-            t.team.name.toLowerCase() === params.name!.toLowerCase()
+            t.team.name.toLowerCase() === queryName
           )
 
-          const chosen = exactMatch || searchResponse.response[0]
-          team = {
-            ...chosen.team,
-            venue: chosen.venue || null
+          const chosen = exactMatch ?? searchResponse.response[0]
+          if (chosen) {
+            team = {
+              ...chosen.team,
+              venue: chosen.venue || null
+            }
+            teamId = chosen.team.id
           }
-          teamId = chosen.team.id
         }
       }
 
@@ -150,8 +156,7 @@ export class GetTeamTool implements Tool {
             result.squad = squad
           }
         } catch (squadError) {
-          const { logger } = await import('../logger/logger')
-          logger.warn('Could not fetch squad data', squadError as any)
+          logger.warn('Could not fetch squad data', squadError as Error)
           // Continue without squad data
         }
       }
@@ -171,8 +176,7 @@ export class GetTeamTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in get_team', error as any)
+      logger.error('Error in get_team', error as Error)
 
       return {
         content: [{

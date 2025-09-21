@@ -33,11 +33,8 @@ export function createLogger (config: LoggerConfig = {}): Logger {
   }
 
   if (pretty) {
-    try {
-      // Only enable pretty transport if available to avoid runtime errors
-      // in environments where pino-pretty is not installed.
-      // eslint-disable-next-line n/no-missing-require
-      require.resolve('pino-pretty')
+    const prettyAvailable = moduleExists('pino-pretty')
+    if (prettyAvailable) {
       pinoConfig.transport = {
         target: 'pino-pretty',
         options: {
@@ -46,8 +43,6 @@ export function createLogger (config: LoggerConfig = {}): Logger {
           ignore: 'hostname,pid'
         }
       }
-    } catch {
-      // Fallback silently to non-pretty output
     }
   }
 
@@ -56,14 +51,16 @@ export function createLogger (config: LoggerConfig = {}): Logger {
     const logDir = process.env.LOG_DIR || path.join(process.cwd(), 'logs')
     const rotateInterval = process.env.LOG_ROTATE_INTERVAL || '1d' // daily
     const rotateSize = process.env.LOG_ROTATE_SIZE || '10M'
-    try {
-      fs.mkdirSync(logDir, { recursive: true })
-    } catch {}
+    if (!fs.existsSync(logDir)) {
+      try {
+        fs.mkdirSync(logDir, { recursive: true })
+      } catch {
+        // ignore directory creation errors; will fallback to stdout
+      }
+    }
 
-    try {
-      // Try rotating file transport if available
-      // eslint-disable-next-line n/no-missing-require
-      require.resolve('pino-rotating-file')
+    // Try rotating file transport if available
+    if (moduleExists('pino-rotating-file')) {
       pinoConfig.transport = {
         target: 'pino-rotating-file',
         options: {
@@ -71,8 +68,8 @@ export function createLogger (config: LoggerConfig = {}): Logger {
           interval: rotateInterval,
           size: rotateSize
         }
-      } as any
-    } catch {
+      }
+    } else {
       // Fallback to simple file per-day
       const date = new Date().toISOString().slice(0, 10)
       const destination = path.join(logDir, `server-${date}.log`)
@@ -86,42 +83,36 @@ export function createLogger (config: LoggerConfig = {}): Logger {
 export function createConsoleLogger (): Logger {
   return {
     debug: (message: string | object, ...args: unknown[]) => {
-      if (typeof message === 'string') {
-        console.log(`DEBUG: ${message}`, ...args)
-      } else {
-        console.log('DEBUG:', message)
-      }
+      const text = typeof message === 'string' ? `DEBUG: ${message}` : `DEBUG: ${JSON.stringify(message)}`
+      process.stdout.write(text + (args.length ? ` ${args.map(a => String(a)).join(' ')}` : '') + '\n')
     },
     info: (message: string | object, ...args: unknown[]) => {
-      if (typeof message === 'string') {
-        console.log(`INFO: ${message}`, ...args)
-      } else {
-        console.log('INFO:', message)
-      }
+      const text = typeof message === 'string' ? `INFO: ${message}` : `INFO: ${JSON.stringify(message)}`
+      process.stdout.write(text + (args.length ? ` ${args.map(a => String(a)).join(' ')}` : '') + '\n')
     },
     warn: (message: string | object, ...args: unknown[]) => {
-      if (typeof message === 'string') {
-        console.warn(`WARN: ${message}`, ...args)
-      } else {
-        console.warn('WARN:', message)
-      }
+      const text = typeof message === 'string' ? `WARN: ${message}` : `WARN: ${JSON.stringify(message)}`
+      process.stderr.write(text + (args.length ? ` ${args.map(a => String(a)).join(' ')}` : '') + '\n')
     },
     error: (message: string | object, ...args: unknown[]) => {
-      if (typeof message === 'string') {
-        console.error(`ERROR: ${message}`, ...args)
-      } else {
-        console.error('ERROR:', message)
-      }
+      const text = typeof message === 'string' ? `ERROR: ${message}` : `ERROR: ${JSON.stringify(message)}`
+      process.stderr.write(text + (args.length ? ` ${args.map(a => String(a)).join(' ')}` : '') + '\n')
     },
     fatal: (message: string | object, ...args: unknown[]) => {
-      if (typeof message === 'string') {
-        console.error(`FATAL: ${message}`, ...args)
-      } else {
-        console.error('FATAL:', message)
-      }
+      const text = typeof message === 'string' ? `FATAL: ${message}` : `FATAL: ${JSON.stringify(message)}`
+      process.stderr.write(text + (args.length ? ` ${args.map(a => String(a)).join(' ')}` : '') + '\n')
     }
   }
 }
 
 // Default logger instance
 export const logger = createLogger({ pretty: process.env.NODE_ENV !== 'production' })
+
+function moduleExists (name: string): boolean {
+  try {
+    require.resolve(name)
+    return true
+  } catch {
+    return false
+  }
+}

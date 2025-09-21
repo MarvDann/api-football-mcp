@@ -38,43 +38,5 @@ export const API_HEADERS = {
   'x-apisports-host': 'v3.football.api-sports.io'
 } as const
 
-export interface ApiEndpointParams {
-  league?: number
-  season?: number
-  team?: number
-  player?: number
-  fixture?: number
-  from?: string
-  to?: string
-  date?: string
-  status?: string
-  round?: string
-  search?: string
-  limit?: number
-  page?: number
-  id?: number
-}
-
-export interface RateLimitHeaders {
-  'X-RateLimit-Limit': string
-  'X-RateLimit-Remaining': string
-  'X-RateLimit-Reset': string
-}
-
-export interface ApiResponse<T> {
-  get: string
-  parameters: Record<string, string>
-  errors: any[]
-  results: number
-  paging: {
-    current: number
-    total: number
-  }
-  response: T
-}
-
-export interface ApiError {
-  message: string
-  status: number
-  headers?: RateLimitHeaders
-}
+// Re-export shared types from central types module
+export type { ApiEndpointParams, RateLimitHeaders, ApiResponse, ApiError } from '../../types/api'

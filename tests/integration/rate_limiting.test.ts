@@ -27,7 +27,7 @@ describe('Integration: Handle API rate limiting gracefully', () => {
 
     // Make a real API call to get rate limit headers
     try {
-      await delayedApiCall(() => getStandingsTool.call({ params: { season: 2024 } }))
+      await delayedApiCall(() => getStandingsTool.call({ params: { season: 2024 } } as any))
       const rateLimitInfo = apiClient.getRateLimitInfo()
 
       expect(rateLimitInfo).toBeDefined()
@@ -87,13 +87,12 @@ describe('Integration: Handle API rate limiting gracefully', () => {
     // Test that tools handle rate limit errors properly
     const tool = new GetStandingsTool(apiClient, cache)
 
-    // Verify the tool has proper error handling
-    expect(tool.call).toBeDefined()
-    expect(typeof tool.call.bind(tool)).toBe('function')
+    // Verify the tool exposes a callable interface
+    expect('call' in tool).toBe(true)
 
     // The handler should gracefully handle API errors
     try {
-      await tool.call({ params: { season: -1 } }) // Invalid season to trigger error
+      await tool.call({ params: { season: -1 } } as any) // Invalid season to trigger error
     } catch (error: any) {
       expect(error).toBeDefined()
       expect(typeof error.message).toBe('string')
@@ -116,7 +115,6 @@ describe('Integration: Handle API rate limiting gracefully', () => {
   it('should prioritize cached data when approaching rate limits', async () => {
     // Test that system serves cached data when rate limits are approaching
 
-    const tool = new GetStandingsTool(apiClient, cache)
     const testData = { standings: [{ position: 1, team: { name: 'Test Team' } }] }
 
     // Pre-populate cache
@@ -146,10 +144,9 @@ describe('Integration: Handle API rate limiting gracefully', () => {
 
     // Create client with invalid API key
     const invalidClient = new APIFootballClient({ apiKey: 'invalid-key', timeout: 5000 })
-    const tool = new GetStandingsTool(invalidClient, cache)
 
     try {
-      await tool.handler({ season: 2024 })
+      await new GetStandingsTool(invalidClient, cache).call({ params: { season: 2024 } } as any)
       // If no error thrown, check that we at least got a response structure
     } catch (error: any) {
       // Should get a meaningful authentication error
@@ -167,7 +164,7 @@ describe('Integration: Handle API rate limiting gracefully', () => {
 
     // The client should handle concurrent requests properly
     const promises = Array(3).fill(null).map(() =>
-      new GetStandingsTool(apiClient, cache).call({ params: { season: 2024 } })
+      new GetStandingsTool(apiClient, cache).call({ params: { season: 2024 } } as any)
         .catch(e => ({ error: e.message }))
     )
 

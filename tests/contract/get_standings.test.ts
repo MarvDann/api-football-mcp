@@ -44,7 +44,7 @@ describe('Contract: get_standings tool', () => {
     expect(result.isError).toBeUndefined()
     expect(result.content).toHaveLength(1)
 
-    const payload = JSON.parse(result.content[0].text)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload).toHaveProperty('standings')
     expect(Array.isArray(payload.standings)).toBe(true)
@@ -106,6 +106,6 @@ describe('Contract: get_standings tool', () => {
     const result = await getStandingsTool.call({ params: { season: 1980 } } as any)
 
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('Season must be between')
+    expect(((result.content[0] as any).text as string)).toContain('Season must be between')
   })
 })

@@ -39,11 +39,11 @@ describe('Integration: Get team squad information', () => {
 
     try {
       // Test getting team by ID with delay
-      const teamById = await delayedApiCall(() => getTeamTool.call({ params: { teamId, season } }))
+      const teamById = await delayedApiCall(() => getTeamTool.call({ params: { teamId, season } } as any))
 
       // Check for rate limiting in response
-      if (teamById.content?.[0]?.text) {
-        const responseData = JSON.parse(teamById.content[0].text)
+      if (teamById.content?.[0] && (teamById.content[0] as any).text) {
+        const responseData = JSON.parse(((teamById.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping team by ID test due to rate limiting')
@@ -55,10 +55,10 @@ describe('Integration: Get team squad information', () => {
       }
 
       // Test getting team by name with delay
-      const teamByName = await delayedApiCall(() => getTeamTool.call({ params: { name: teamName, season } }))
+      const teamByName = await delayedApiCall(() => getTeamTool.call({ params: { name: teamName, season } } as any))
 
-      if (teamByName.content?.[0]?.text) {
-        const responseData = JSON.parse(teamByName.content[0].text)
+      if (teamByName.content?.[0] && (teamByName.content[0] as any).text) {
+        const responseData = JSON.parse(((teamByName.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping team by name test due to rate limiting')
@@ -89,10 +89,10 @@ describe('Integration: Get team squad information', () => {
     }
 
     try {
-      const searchResults = await delayedApiCall(() => searchTeamsTool.call({ params: { name: teamName } }))
+      const searchResults = await delayedApiCall(() => searchTeamsTool.call({ params: { name: teamName } } as any))
 
       if (searchResults.content?.[0]?.text) {
-        const responseData = JSON.parse(searchResults.content[0].text)
+        const responseData = JSON.parse(((searchResults.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping team search test due to rate limiting')
@@ -122,10 +122,10 @@ describe('Integration: Get team squad information', () => {
     }
 
     try {
-      const allTeams = await delayedApiCall(() => searchTeamsTool.call({ params: { season } }))
+      const allTeams = await delayedApiCall(() => searchTeamsTool.call({ params: { season } } as any))
 
       if (allTeams.content?.[0]?.text) {
-        const responseData = JSON.parse(allTeams.content[0].text)
+        const responseData = JSON.parse(((allTeams.content[0] as any).text as string))
         const rateLimit = checkRateLimit(responseData)
         if (rateLimit.isLimited) {
           console.log('⏭️  Skipping teams by season test due to rate limiting')
@@ -167,7 +167,7 @@ describe('Integration: Get team squad information', () => {
     const season = 2024
 
     try {
-      const result = await getTeamTool.call({ params: { teamId, season } })
+      const result = await getTeamTool.call({ params: { teamId, season } } as any)
       // The result structure should be defined by the tool implementation
       expect(result).toBeDefined()
     } catch (error: any) {
@@ -186,7 +186,7 @@ describe('Integration: Get team squad information', () => {
     const historicalSeason = 1992
 
     try {
-      const historicalTeams = await searchTeamsTool.call({ params: { season: historicalSeason } })
+      const historicalTeams = await searchTeamsTool.call({ params: { season: historicalSeason } } as any)
       expect(historicalTeams).toBeDefined()
     } catch (error: any) {
       // If API key is missing or invalid, check that we handle it gracefully
@@ -203,7 +203,7 @@ describe('Integration: Get team squad information', () => {
     const nonExistentTeam = 'Non Existent FC'
 
     try {
-      const result = await searchTeamsTool.call({ params: { name: nonExistentTeam } })
+      const result = await searchTeamsTool.call({ params: { name: nonExistentTeam } } as any)
       // Should return empty results or handle gracefully
       expect(result).toBeDefined()
     } catch (error: any) {
@@ -219,7 +219,7 @@ describe('Integration: Get team squad information', () => {
 
     try {
       // Test with invalid parameters
-      await getTeamTool.call({ params: { teamId: -1, season: -1 } })
+      await getTeamTool.call({ params: { teamId: -1, season: -1 } } as any)
     } catch (error: any) {
       // Should provide clear error message
       expect(error).toBeDefined()

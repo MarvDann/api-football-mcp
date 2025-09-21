@@ -31,7 +31,7 @@ export interface PlayerResponse {
     injured: boolean
     photo: string
   }
-  statistics: Array<{
+  statistics: {
     team: {
       id: number
       name: string
@@ -104,7 +104,7 @@ export interface PlayerResponse {
       missed: number
       saved: number | null
     }
-  }>
+  }[]
 }
 
 export interface TeamResponse {
@@ -206,7 +206,7 @@ export interface StandingResponse {
     logo: string
     flag: string
     season: number
-    standings: Array<Array<{
+    standings: {
       rank: number
       team: {
         id: number
@@ -250,12 +250,12 @@ export interface StandingResponse {
         }
       }
       update: string
-    }>>
+    }[][]
   }
 }
 
 // Test validation functions based on documented response formats
-export function validatePlayerResponse(response: any): boolean {
+export function validatePlayerResponse (response: any): boolean {
   if (!response.player) return false
 
   const player = response.player
@@ -276,7 +276,7 @@ export function validatePlayerResponse(response: any): boolean {
   )
 }
 
-export function validateTeamResponse(response: any): boolean {
+export function validateTeamResponse (response: any): boolean {
   if (!response.team) return false
 
   const team = response.team
@@ -294,7 +294,7 @@ export function validateTeamResponse(response: any): boolean {
   )
 }
 
-export function validateFixtureResponse(response: any): boolean {
+export function validateFixtureResponse (response: any): boolean {
   if (!response.fixture) return false
 
   const fixture = response.fixture
@@ -309,13 +309,12 @@ export function validateFixtureResponse(response: any): boolean {
     response.league &&
     typeof response.league.id === 'number' &&
     typeof response.league.name === 'string' &&
-    response.teams &&
-    response.teams.home &&
+    response.teams?.home &&
     response.teams.away
   )
 }
 
-export function validateStandingResponse(response: any): boolean {
+export function validateStandingResponse (response: any): boolean {
   if (!response.league) return false
 
   const league = response.league
@@ -336,9 +335,9 @@ export function validateStandingResponse(response: any): boolean {
   )
 }
 
-export function validateApiResponse<T>(
+export function validateApiResponse (
   response: any,
-  validator: (data: T) => boolean
+  validator: (data: unknown) => boolean
 ): boolean {
   return (
     response &&

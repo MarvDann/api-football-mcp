@@ -6,11 +6,19 @@ import {
   Player,
   MatchEvent
 } from '../../models'
+import {
+  StandingItemAPI,
+  StandingStatsAPI,
+  FixtureAPI,
+  TeamInFixtureAPI,
+  PlayerAPI,
+  MatchEventAPI
+} from '../../types/api-football'
 
 export interface ValidationError {
   field: string
   message: string
-  value?: any
+  value?: unknown
 }
 
 export class ValidationErrors extends Error {
@@ -38,7 +46,7 @@ export function validateRequired<T> (
 }
 
 export function validateNumber (
-  value: any,
+  value: unknown,
   field: string,
   options: {
     required?: boolean
@@ -57,7 +65,8 @@ export function validateNumber (
     return null
   }
 
-  const num = typeof value === 'string' ? parseFloat(value) : value
+  const raw = value as number | string
+  const num = typeof raw === 'string' ? parseFloat(raw) : raw
   if (typeof num !== 'number' || isNaN(num)) {
     throw new ValidationErrors([{
       field,
@@ -86,7 +95,7 @@ export function validateNumber (
 }
 
 export function validateString (
-  value: any,
+  value: unknown,
   field: string,
   options: {
     required?: boolean
@@ -133,7 +142,7 @@ export function validateString (
 }
 
 // Parser functions
-export function parseStandingStats (data: any): StandingStats {
+export function parseStandingStats (data: StandingStatsAPI): StandingStats {
   return {
     played: validateNumber(data.played, 'played', { required: true }) ?? 0,
     win: validateNumber(data.win, 'win', { required: true }) ?? 0,
@@ -146,7 +155,7 @@ export function parseStandingStats (data: any): StandingStats {
   }
 }
 
-export function parseStanding (data: any): Standing {
+export function parseStanding (data: StandingItemAPI): Standing {
   return {
     rank: validateNumber(data.rank, 'rank', { required: true }) ?? 0,
     team: {
@@ -167,7 +176,7 @@ export function parseStanding (data: any): Standing {
   }
 }
 
-export function parseTeamInFixture (data: any): TeamInFixture {
+export function parseTeamInFixture (data: TeamInFixtureAPI): TeamInFixture {
   return {
     id: validateNumber(data.id, 'id', { required: true }) ?? 0,
     name: validateString(data.name, 'name', { required: true }) ?? '',
@@ -176,26 +185,26 @@ export function parseTeamInFixture (data: any): TeamInFixture {
   }
 }
 
-export function parseFixture (data: any): Fixture {
+export function parseFixture (data: FixtureAPI): Fixture {
   return {
-    id: validateNumber(data.fixture?.id, 'fixture.id', { required: true }) ?? 0,
-    referee: validateString(data.fixture?.referee, 'fixture.referee'),
-    timezone: validateString(data.fixture?.timezone, 'fixture.timezone', { required: true }) || 'UTC',
-    date: validateString(data.fixture?.date, 'fixture.date', { required: true }) ?? '',
-    timestamp: validateNumber(data.fixture?.timestamp, 'fixture.timestamp', { required: true }) ?? 0,
+    id: validateNumber(data.fixture.id, 'fixture.id', { required: true }) ?? 0,
+    referee: validateString(data.fixture.referee ?? null, 'fixture.referee'),
+    timezone: validateString(data.fixture.timezone ?? 'UTC', 'fixture.timezone', { required: true }) || 'UTC',
+    date: validateString(data.fixture.date, 'fixture.date', { required: true }) ?? '',
+    timestamp: validateNumber(data.fixture.timestamp, 'fixture.timestamp', { required: true }) ?? 0,
     periods: {
-      first: validateNumber(data.fixture?.periods?.first, 'fixture.periods.first'),
-      second: validateNumber(data.fixture?.periods?.second, 'fixture.periods.second')
+      first: validateNumber(data.fixture.periods?.first, 'fixture.periods.first'),
+      second: validateNumber(data.fixture.periods?.second, 'fixture.periods.second')
     },
     venue: {
-      id: validateNumber(data.fixture?.venue?.id, 'fixture.venue.id'),
-      name: validateString(data.fixture?.venue?.name, 'fixture.venue.name'),
-      city: validateString(data.fixture?.venue?.city, 'fixture.venue.city')
+      id: validateNumber(data.fixture.venue?.id ?? null, 'fixture.venue.id'),
+      name: validateString(data.fixture.venue?.name ?? null, 'fixture.venue.name'),
+      city: validateString(data.fixture.venue?.city ?? null, 'fixture.venue.city')
     },
     status: {
-      long: validateString(data.fixture?.status?.long, 'fixture.status.long', { required: true }) ?? '',
-      short: data.fixture?.status?.short || 'TBD',
-      elapsed: validateNumber(data.fixture?.status?.elapsed, 'fixture.status.elapsed')
+      long: validateString(data.fixture.status.long, 'fixture.status.long', { required: true }) ?? '',
+      short: parseFixtureStatusShort(data.fixture.status.short),
+      elapsed: validateNumber(data.fixture.status.elapsed ?? null, 'fixture.status.elapsed')
     },
     league: {
       id: validateNumber(data.league?.id, 'league.id', { required: true }) ?? 0,
@@ -207,35 +216,35 @@ export function parseFixture (data: any): Fixture {
       round: validateString(data.league?.round, 'league.round', { required: true }) ?? ''
     },
     teams: {
-      home: parseTeamInFixture(data.teams?.home),
-      away: parseTeamInFixture(data.teams?.away)
+      home: parseTeamInFixture(data.teams.home),
+      away: parseTeamInFixture(data.teams.away)
     },
     goals: {
-      home: validateNumber(data.goals?.home, 'goals.home'),
-      away: validateNumber(data.goals?.away, 'goals.away')
+      home: validateNumber(data.goals.home, 'goals.home'),
+      away: validateNumber(data.goals.away, 'goals.away')
     },
     score: {
       halftime: {
-        home: validateNumber(data.score?.halftime?.home, 'score.halftime.home'),
-        away: validateNumber(data.score?.halftime?.away, 'score.halftime.away')
+        home: validateNumber(data.score?.halftime?.home ?? null, 'score.halftime.home'),
+        away: validateNumber(data.score?.halftime?.away ?? null, 'score.halftime.away')
       },
       fulltime: {
-        home: validateNumber(data.score?.fulltime?.home, 'score.fulltime.home'),
-        away: validateNumber(data.score?.fulltime?.away, 'score.fulltime.away')
+        home: validateNumber(data.score?.fulltime?.home ?? null, 'score.fulltime.home'),
+        away: validateNumber(data.score?.fulltime?.away ?? null, 'score.fulltime.away')
       },
       extratime: {
-        home: validateNumber(data.score?.extratime?.home, 'score.extratime.home'),
-        away: validateNumber(data.score?.extratime?.away, 'score.extratime.away')
+        home: validateNumber(data.score?.extratime?.home ?? null, 'score.extratime.home'),
+        away: validateNumber(data.score?.extratime?.away ?? null, 'score.extratime.away')
       },
       penalty: {
-        home: validateNumber(data.score?.penalty?.home, 'score.penalty.home'),
-        away: validateNumber(data.score?.penalty?.away, 'score.penalty.away')
+        home: validateNumber(data.score?.penalty?.home ?? null, 'score.penalty.home'),
+        away: validateNumber(data.score?.penalty?.away ?? null, 'score.penalty.away')
       }
     }
   }
 }
 
-export function parsePlayer (data: any): Player {
+export function parsePlayer (data: PlayerAPI): Player {
   return {
     id: validateNumber(data.id, 'id', { required: true }) ?? 0,
     name: validateString(data.name, 'name', { required: true }) ?? '',
@@ -250,12 +259,12 @@ export function parsePlayer (data: any): Player {
     nationality: validateString(data.nationality, 'nationality') ?? '',
     height: validateString(data.height, 'height') ?? '',
     weight: validateString(data.weight, 'weight') ?? '',
-    injured: Boolean(data.injured),
+    injured: data.injured,
     photo: validateString(data.photo, 'photo') ?? ''
   }
 }
 
-export function parseMatchEvent (data: any): MatchEvent {
+export function parseMatchEvent (data: MatchEventAPI): MatchEvent {
   return {
     time: {
       elapsed: validateNumber(data.time?.elapsed, 'time.elapsed', { required: true }) ?? 0,
@@ -274,8 +283,23 @@ export function parseMatchEvent (data: any): MatchEvent {
       id: validateNumber(data.assist?.id, 'assist.id'),
       name: validateString(data.assist?.name, 'assist.name')
     },
-    type: validateString(data.type, 'type', { required: true }) as any || 'Goal',
+    type: parseEventType(validateString(data.type, 'type', { required: true }) || undefined),
     detail: validateString(data.detail, 'detail', { required: true }) ?? '',
-    comments: validateString(data.comments, 'comments')
+    comments: validateString(data.comments ?? null, 'comments')
   }
+}
+
+// Helpers
+function parseFixtureStatusShort (value: string | undefined): Fixture['status']['short'] {
+  const allowed = new Set<string>([
+    'TBD', 'NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO', 'LIVE'
+  ])
+  if (!value || !allowed.has(value)) return 'TBD'
+  return value as Fixture['status']['short']
+}
+
+function parseEventType (value: string | undefined): MatchEvent['type'] {
+  const allowed = new Set(['Goal', 'Card', 'subst', 'Var'])
+  if (!value || !allowed.has(value)) return 'Goal'
+  return value as MatchEvent['type']
 }

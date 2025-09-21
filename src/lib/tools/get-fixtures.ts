@@ -4,7 +4,9 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseFixture } from '../api-client/parser'
+import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
+import { FixtureAPI } from '../../types/api-football'
 
 export interface GetFixturesParams {
   season?: number
@@ -133,7 +135,7 @@ export class GetFixturesTool implements Tool {
       }))
 
       // Parse and format the response, ensure fixture id is explicitly included
-      const fixtures = apiResponse.response.map((item: any) => {
+      const fixtures = apiResponse.response.map((item: FixtureAPI) => {
         const f = parseFixture(item)
         return { fixtureId: f.id, ...f }
       })
@@ -155,8 +157,7 @@ export class GetFixturesTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in get_fixtures', error as any)
+      logger.error('Error in get_fixtures', error as Error)
 
       return {
         content: [{

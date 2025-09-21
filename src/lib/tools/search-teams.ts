@@ -3,6 +3,7 @@ import { APIFootballClient } from '../api-client/client'
 import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
+import { logger } from '../logger/logger'
 
 export interface SearchTeamsParams {
   query?: string
@@ -113,8 +114,7 @@ export class SearchTeamsTool implements Tool {
       }
 
     } catch (error) {
-      const { logger } = await import('../logger/logger')
-      logger.error('Error in search_teams', error as any)
+      logger.error('Error in search_teams', error as Error)
 
       return {
         content: [{
