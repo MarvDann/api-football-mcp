@@ -1,106 +1,105 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { GetTeamTool } from '../../src/lib/tools/get-team'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import {
+  sampleTeamByIdResponse,
+  sampleTeamSearchResponse,
+  samplePlayerSearchResponse
+} from '../helpers/sample-responses'
 
-describe('get_team contract test', () => {
-  it('should validate input schema for get_team tool', () => {
-    // Valid inputs - requires either teamId or name
-    const validInputs = [
-      { teamId: 50 },
-      { name: 'Manchester United' },
-      { teamId: 50, season: 2024 },
-      { name: 'Arsenal', season: 2023 },
-      { teamId: 33, name: 'Manchester United', season: 2024 } // Both provided
-    ]
+describe('Contract: get_team tool', () => {
+  let cache: LRUCache
+  let getTeamTool: GetTeamTool
+  let mockApiClient: {
+    getTeam: ReturnType<typeof vi.fn>
+    getPlayers: ReturnType<typeof vi.fn>
+    searchTeams: ReturnType<typeof vi.fn>
+  }
 
-    const invalidInputs = [
-      {}, // Neither teamId nor name provided
-      { teamId: 'invalid' }, // Wrong type
-      { name: 123 }, // Wrong type
-      { season: 'invalid' }, // Wrong season type
-      { season: null }
-    ]
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_team tool not implemented')
-    }).toThrow('get_team tool not implemented')
-  })
-
-  it('should validate output schema for get_team tool', () => {
-    const expectedOutput = {
-      team: {
-        id: 50,
-        name: 'Manchester City',
-        code: 'MCI',
-        logo: 'https://example.com/mc.png',
-        founded: 1880,
-        venue: {
-          id: 555,
-          name: 'Etihad Stadium',
-          city: 'Manchester',
-          capacity: 55017,
-          surface: 'grass',
-          image: 'https://example.com/etihad.jpg'
-        }
-      },
-      squad: [
-        {
-          id: 284,
-          name: 'Erling Haaland',
-          firstname: 'Erling',
-          lastname: 'Haaland',
-          age: 24,
-          birthDate: '2000-07-21',
-          birthPlace: 'Leeds',
-          birthCountry: 'England',
-          nationality: 'Norway',
-          height: '194 cm',
-          weight: '88 kg',
-          photo: 'https://example.com/haaland.jpg',
-          position: 'Attacker',
-          number: 9
-        }
-      ]
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      getTeam: vi.fn().mockResolvedValue(sampleTeamByIdResponse),
+      getPlayers: vi.fn().mockResolvedValue(samplePlayerSearchResponse),
+      searchTeams: vi.fn().mockResolvedValue(sampleTeamSearchResponse)
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_team tool not implemented')
-    }).toThrow('get_team tool not implemented')
+    getTeamTool = new GetTeamTool(mockApiClient as any, cache)
   })
 
-  it('should validate anyOf constraint - teamId OR name required', () => {
-    // Test that at least one of teamId or name is required
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_team tool not implemented')
-    }).toThrow('get_team tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should handle optional season parameter for squad data', () => {
-    // Test that season parameter affects squad information
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('get_team')
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_team tool not implemented')
-    }).toThrow('get_team tool not implemented')
+    expect(getTeamTool.name).toBe(contract.name)
+    expect(getTeamTool.description).toBe(contract.description)
+    expect(getTeamTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('should validate team data structure', () => {
-    // Test required team fields and venue structure
+  it('returns team details and squad that satisfy the documented schema', async () => {
+    const result = await getTeamTool.call({ params: { teamId: 33, season: 2024 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_team tool not implemented')
-    }).toThrow('get_team tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.team).toMatchObject({
+      id: 33,
+      name: 'Manchester United',
+      code: 'MUN',
+      founded: 1878,
+      logo: expect.any(String),
+      venue: {
+        id: 556,
+        name: 'Old Trafford',
+        city: 'Manchester',
+        capacity: 74879,
+        surface: 'Grass',
+        image: expect.any(String)
+      }
+    })
+
+    expect(Array.isArray(payload.squad)).toBe(true)
+    expect(payload.squad.length).toBeGreaterThan(0)
+    expect(payload.squad[0]).toMatchObject({
+      id: expect.any(Number),
+      name: expect.any(String),
+      firstname: expect.any(String),
+      lastname: expect.any(String),
+      age: expect.any(Number),
+      birthDate: expect.any(String),
+      birthPlace: expect.any(String),
+      birthCountry: expect.any(String),
+      nationality: expect.any(String),
+      height: expect.any(String),
+      weight: expect.any(String),
+      injured: expect.any(Boolean),
+      photo: expect.any(String)
+    })
+
+    expect(mockApiClient.getTeam).toHaveBeenCalledWith(33, 2024)
+    expect(mockApiClient.getPlayers).toHaveBeenCalledWith({ team: 33, season: 2024, page: 1 })
   })
 
-  it('should validate squad player structure', () => {
-    // Test player array structure in squad
+  it('supports lookups by team name through the documented contract', async () => {
+    const result = await getTeamTool.call({ params: { name: 'Arsenal', season: 2024 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_team tool not implemented')
-    }).toThrow('get_team tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.team.name).toBe('Arsenal')
+    expect(mockApiClient.searchTeams).toHaveBeenCalledWith('Arsenal')
+    expect(mockApiClient.getPlayers).toHaveBeenCalledWith({ team: 42, season: 2024, page: 1 })
+  })
+
+  it('rejects requests without identifiers as required by the contract', async () => {
+    const result = await getTeamTool.call({ params: {} } as any)
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain('Either teamId or name must be provided')
   })
 })

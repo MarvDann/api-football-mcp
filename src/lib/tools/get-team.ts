@@ -83,12 +83,16 @@ export class GetTeamTool implements Tool {
         const apiResponse = await this.apiClient.getTeam(teamId, params.season)
 
         if (apiResponse.response && apiResponse.response.length > 0) {
-          team = apiResponse.response[0].team
-          teamId = team.id
+          const data = apiResponse.response[0]
+          team = {
+            ...data.team,
+            venue: data.venue || null
+          }
+          teamId = data.team.id
         }
       } else if (params.name) {
         // Search for team by name
-        const searchResponse = await this.apiClient.searchTeams(params.name, params.season)
+        const searchResponse = await this.apiClient.searchTeams(params.name)
 
         if (searchResponse.response && searchResponse.response.length > 0) {
           // Find exact match or closest match
@@ -96,14 +100,12 @@ export class GetTeamTool implements Tool {
             t.team.name.toLowerCase() === params.name!.toLowerCase()
           )
 
-          if (exactMatch) {
-            team = exactMatch.team
-            teamId = team.id
-          } else {
-            // Use first result as closest match
-            team = searchResponse.response[0].team
-            teamId = team.id
+          const chosen = exactMatch || searchResponse.response[0]
+          team = {
+            ...chosen.team,
+            venue: chosen.venue || null
           }
+          teamId = chosen.team.id
         }
       }
 
@@ -120,20 +122,36 @@ export class GetTeamTool implements Tool {
 
       const result: GetTeamResult = { team }
 
-      // Fetch squad if season is provided and we have a teamId
+      // Fetch season-specific squad via /players if season is provided and we have a teamId
       if (params.season && teamId) {
         try {
-          const squadResponse = await this.apiClient.getSquad(teamId, params.season)
+          const squadResponse = await this.apiClient.getPlayers({ team: teamId, season: params.season, page: 1 })
 
           if (squadResponse.response && squadResponse.response.length > 0) {
-            const squad = squadResponse.response[0].players?.map((playerData: any) =>
-              parsePlayer(playerData.player)
-            ) || []
+            const squad = squadResponse.response.map((playerData: any) => {
+              const parsed = parsePlayer(playerData.player)
+              return {
+                id: parsed.id,
+                name: parsed.name,
+                firstname: parsed.firstname,
+                lastname: parsed.lastname,
+                age: parsed.age,
+                birthDate: parsed.birth.date,
+                birthPlace: parsed.birth.place,
+                birthCountry: parsed.birth.country,
+                nationality: parsed.nationality,
+                height: parsed.height,
+                weight: parsed.weight,
+                injured: parsed.injured,
+                photo: parsed.photo
+              }
+            })
 
             result.squad = squad
           }
         } catch (squadError) {
-          console.warn('Could not fetch squad data:', squadError)
+          const { logger } = await import('../logger/logger')
+          logger.warn('Could not fetch squad data', squadError as any)
           // Continue without squad data
         }
       }
@@ -153,7 +171,8 @@ export class GetTeamTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in get_team:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in get_team', error as any)
 
       return {
         content: [{

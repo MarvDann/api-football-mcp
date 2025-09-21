@@ -6,10 +6,12 @@ import { GetStandingsTool } from './get-standings'
 import { GetFixturesTool } from './get-fixtures'
 import { GetTeamTool } from './get-team'
 import { GetPlayerTool } from './get-player'
-import { GetMatchEventsTool } from './get-match-events'
+import { GetMatchGoalsTool } from './get-match-goals'
 import { SearchTeamsTool } from './search-teams'
 import { SearchPlayersTool } from './search-players'
 import { GetLiveMatchesTool } from './get-live-matches'
+import { GetRateLimitTool } from './get-rate-limit'
+import { GetSquadTool } from './get-squad'
 
 export interface ToolRegistryDependencies {
   apiClient: APIFootballClient
@@ -25,10 +27,12 @@ export class ToolRegistry {
     this.registerTool(new GetFixturesTool(dependencies.apiClient, dependencies.cache))
     this.registerTool(new GetTeamTool(dependencies.apiClient, dependencies.cache))
     this.registerTool(new GetPlayerTool(dependencies.apiClient, dependencies.cache))
-    this.registerTool(new GetMatchEventsTool(dependencies.apiClient, dependencies.cache))
+    this.registerTool(new GetMatchGoalsTool(dependencies.apiClient, dependencies.cache))
     this.registerTool(new SearchTeamsTool(dependencies.apiClient, dependencies.cache))
     this.registerTool(new SearchPlayersTool(dependencies.apiClient, dependencies.cache))
     this.registerTool(new GetLiveMatchesTool(dependencies.apiClient, dependencies.cache))
+    this.registerTool(new GetRateLimitTool(dependencies.apiClient, dependencies.cache))
+    this.registerTool(new GetSquadTool(dependencies.apiClient, dependencies.cache))
   }
 
   private registerTool (tool: Tool): void {

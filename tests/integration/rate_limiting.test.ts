@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { APIFootballClient } from '../../src/lib/api-client/client'
 import { LRUCache } from '../../src/lib/cache/lru-cache'
 import { GetStandingsTool } from '../../src/lib/tools/get-standings'
+import { delayedApiCall, testWithRateLimit } from '../helpers/api_test_helpers'
 
 describe('Integration: Handle API rate limiting gracefully', () => {
   let apiClient: APIFootballClient
@@ -19,14 +20,14 @@ describe('Integration: Handle API rate limiting gracefully', () => {
     cache.destroy()
   })
 
-  it('should respect rate limits from API response headers', async () => {
+  it('should respect rate limits from API response headers', testWithRateLimit('respect rate limit headers', async () => {
     // Test FR-010: System MUST respect rate limits which are returned
     // in request response headers
     // Headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
 
     // Make a real API call to get rate limit headers
     try {
-      await getStandingsTool.call({ params: { season: 2024 } })
+      await delayedApiCall(() => getStandingsTool.call({ params: { season: 2024 } }))
       const rateLimitInfo = apiClient.getRateLimitInfo()
 
       expect(rateLimitInfo).toBeDefined()
@@ -41,7 +42,7 @@ describe('Integration: Handle API rate limiting gracefully', () => {
         throw error
       }
     }
-  })
+  }))
 
   it('should implement exponential backoff on 429 responses', async () => {
     // Test handling of HTTP 429 Too Many Requests responses

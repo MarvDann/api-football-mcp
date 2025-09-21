@@ -1,140 +1,98 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { SearchPlayersTool } from '../../src/lib/tools/search-players'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import {
+  samplePlayerSearchResponse,
+  samplePlayerResponse
+} from '../helpers/sample-responses'
 
-describe('search_players contract test', () => {
-  it('should validate input schema for search_players tool', () => {
-    // Valid inputs - all parameters are optional
-    const validInputs = [
-      {}, // No parameters
-      { query: 'Haaland' },
-      { teamId: 50 },
-      { position: 'Attacker' },
-      { season: 2024 },
-      { query: 'Kevin', teamId: 50, position: 'Midfielder', season: 2024 },
-      { query: 'De Bruyne' },
-      { position: 'Goalkeeper' }
-    ]
+describe('Contract: search_players tool', () => {
+  let cache: LRUCache
+  let searchPlayersTool: SearchPlayersTool
+  let mockApiClient: {
+    searchPlayers: ReturnType<typeof vi.fn>
+    getPlayers: ReturnType<typeof vi.fn>
+  }
 
-    const invalidInputs = [
-      { query: 123 }, // Wrong type
-      { teamId: 'invalid' }, // Wrong type
-      { position: 'Invalid' }, // Not in enum
-      { season: 'invalid' }, // Wrong type
-      { query: null },
-      { teamId: null },
-      { season: null }
-    ]
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
-  })
-
-  it('should validate output schema for search_players tool', () => {
-    const expectedOutput = {
-      players: [
-        {
-          id: 284,
-          name: 'Erling Haaland',
-          firstname: 'Erling',
-          lastname: 'Haaland',
-          age: 24,
-          birthDate: '2000-07-21',
-          birthPlace: 'Leeds',
-          birthCountry: 'England',
-          nationality: 'Norway',
-          height: '194 cm',
-          weight: '88 kg',
-          photo: 'https://example.com/haaland.jpg',
-          position: 'Attacker',
-          number: 9
-        },
-        {
-          id: 635,
-          name: 'Kevin De Bruyne',
-          firstname: 'Kevin',
-          lastname: 'De Bruyne',
-          age: 32,
-          birthDate: '1991-06-28',
-          birthPlace: 'Drongen',
-          birthCountry: 'Belgium',
-          nationality: 'Belgium',
-          height: '181 cm',
-          weight: '68 kg',
-          photo: 'https://example.com/kdb.jpg',
-          position: 'Midfielder',
-          number: 17
-        }
-      ],
-      total: 2
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      searchPlayers: vi.fn().mockResolvedValue(samplePlayerSearchResponse),
+      getPlayers: vi.fn().mockResolvedValue(samplePlayerResponse)
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
+    searchPlayersTool = new SearchPlayersTool(mockApiClient as any, cache)
   })
 
-  it('should validate position enum values', () => {
-    const validPositions = ['Goalkeeper', 'Defender', 'Midfielder', 'Attacker']
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should handle query parameter for name search', () => {
-    // Test partial name matching
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('search_players')
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
+    expect(searchPlayersTool.name).toBe(contract.name)
+    expect(searchPlayersTool.description).toBe(contract.description)
+    expect(searchPlayersTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('should handle teamId filter parameter', () => {
-    // Test filtering by team ID
+  it('returns players that satisfy the documented schema', async () => {
+    const result = await searchPlayersTool.call({
+      params: { query: 'Rashford', season: 2024 }
+    } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(Array.isArray(payload.players)).toBe(true)
+    expect(payload.total).toBe(payload.players.length)
+
+    const player = payload.players[0]
+    expect(player).toMatchObject({
+      id: expect.any(Number),
+      name: expect.any(String),
+      firstname: expect.any(String),
+      lastname: expect.any(String),
+      age: expect.any(Number),
+      birthDate: expect.any(String),
+      birthPlace: expect.any(String),
+      birthCountry: expect.any(String),
+      nationality: expect.any(String),
+      height: expect.any(String),
+      weight: expect.any(String),
+      photo: expect.any(String),
+      position: expect.stringMatching(/Goalkeeper|Defender|Midfielder|Attacker/),
+      number: expect.any(Number)
+    })
+
+    expect(mockApiClient.searchPlayers).toHaveBeenCalledWith('Rashford', {
+      season: 2024,
+      page: 1
+    })
   })
 
-  it('should handle position filter parameter', () => {
-    // Test filtering by position
+  it('filters players by team when requested', async () => {
+    await searchPlayersTool.call({
+      params: { teamId: 33, season: 2024 }
+    } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
+    expect(mockApiClient.getPlayers).toHaveBeenCalledWith({
+      team: 33,
+      season: 2024,
+      page: 1
+    })
   })
 
-  it('should handle season parameter', () => {
-    // Test filtering by season
+  it('applies position filter after retrieving candidates', async () => {
+    const result = await searchPlayersTool.call({
+      params: { query: 'Rashford', position: 'Attacker', season: 2024 }
+    } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
-  })
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
 
-  it('should validate player data structure', () => {
-    // Test required player fields
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
-  })
-
-  it('should validate total count accuracy', () => {
-    // Test that total field matches actual players array length
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_players tool not implemented')
-    }).toThrow('search_players tool not implemented')
+    expect(payload.players.every((player: any) => player.position === 'Attacker')).toBe(true)
   })
 })

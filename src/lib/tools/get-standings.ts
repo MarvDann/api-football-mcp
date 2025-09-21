@@ -101,7 +101,8 @@ export class GetStandingsTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in get_standings:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in get_standings', error as any)
 
       return {
         content: [{

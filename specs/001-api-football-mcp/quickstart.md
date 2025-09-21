@@ -114,16 +114,16 @@ Add to `claude_desktop_config.json`:
 // Expected output: All currently in-progress Premier League matches
 ```
 
-### Get Match Events
+### Get Match Goals
 
 ```typescript
-// Tool: get_match_events
+// Tool: get_match_goals
 // Input:
 {
   "fixtureId": 123456  // Get from fixtures response
 }
 
-// Expected output: Goals, cards, substitutions for the match
+// Expected output: Goals for the match (type, detail, scorer, assist)
 ```
 
 ## Testing the Installation
@@ -197,6 +197,11 @@ npm run cli:cache -- clear --all
 ```
 
 ## Performance Validation
+
+## Data Coverage
+
+- EPL historical coverage available via API‑Football v3 is typically 2002 → present. Earlier seasons may be incomplete or unavailable.
+- For season‑specific squad lists use team + season (via `players` endpoint). The `players/squads` snapshot does not accept a season and can lag around transfer windows.
 
 ### Expected Response Times
 
@@ -280,3 +285,18 @@ Based on the specification, verify these scenarios work:
 2. Check [Data Model](data-model.md) for entity details
 3. Read [Research](research.md) for technical decisions
 4. Follow [Tasks](tasks.md) for implementation progress
+### Get Team Squad (season-specific)
+
+Use the players endpoint via the CLI squad helper to get the current season squad for a team (requires team and season):
+
+```bash
+# Manchester United (team 33), current season table
+npm run build
+node dist/cli/api-client.js --endpoint squad team=33 season=2025 --format table
+
+# JSON output (basic info only)
+node dist/cli/api-client.js --endpoint squad team=33 season=2025 --format json
+```
+
+The squad output (season-specific via players endpoint) returns the same fields as the players/squads snapshot for each player:
+id, name, firstname, lastname, age, birthDate, birthPlace, birthCountry, nationality, height, weight, injured, photo.

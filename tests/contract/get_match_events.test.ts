@@ -1,151 +1,96 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { GetMatchGoalsTool } from '../../src/lib/tools/get-match-goals'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import {
+  sampleFixturesApiResponse,
+  sampleMatchEventsResponse
+} from '../helpers/sample-responses'
 
-describe('get_match_events contract test', () => {
-  it('should validate input schema for get_match_events tool', () => {
-    // Valid inputs
-    const validInputs = [
-      { fixtureId: 12345 },
-      { fixtureId: 67890 }
-    ]
+describe('Contract: get_match_goals tool', () => {
+  let cache: LRUCache
+  let getMatchEventsTool: GetMatchGoalsTool
+  let mockApiClient: {
+    getFixtureEvents: ReturnType<typeof vi.fn>
+    getFixtures: ReturnType<typeof vi.fn>
+  }
 
-    const invalidInputs = [
-      {}, // Missing required fixtureId
-      { fixtureId: 'invalid' }, // Wrong type
-      { fixtureId: null },
-      { fixtureId: undefined },
-      { wrongParam: 123 } // Wrong parameter name
-    ]
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_match_events tool not implemented')
-    }).toThrow('get_match_events tool not implemented')
-  })
-
-  it('should validate output schema for get_match_events tool', () => {
-    const expectedOutput = {
-      fixture: {
-        id: 12345,
-        referee: 'Michael Oliver',
-        timezone: 'UTC',
-        date: '2024-01-14T15:00:00+00:00',
-        timestamp: 1705244400,
-        venue: {
-          id: 556,
-          name: 'Old Trafford',
-          city: 'Manchester'
-        },
-        status: {
-          long: 'Match Finished',
-          short: 'FT',
-          elapsed: 90
-        },
-        teams: {
-          home: {
-            id: 33,
-            name: 'Manchester United',
-            logo: 'https://example.com/mu.png',
-            winner: true
-          },
-          away: {
-            id: 50,
-            name: 'Manchester City',
-            logo: 'https://example.com/mc.png',
-            winner: false
-          }
-        },
-        goals: {
-          home: 2,
-          away: 1
-        }
-      },
-      events: [
-        {
-          time: {
-            elapsed: 15,
-            extra: null
-          },
-          team: {
-            id: 33,
-            name: 'Manchester United',
-            logo: 'https://example.com/mu.png'
-          },
-          player: {
-            id: 874,
-            name: 'Marcus Rashford'
-          },
-          assist: {
-            id: 890,
-            name: 'Bruno Fernandes'
-          },
-          type: 'Goal',
-          detail: 'Normal Goal',
-          comments: null
-        },
-        {
-          time: {
-            elapsed: 23,
-            extra: null
-          },
-          team: {
-            id: 33,
-            name: 'Manchester United',
-            logo: 'https://example.com/mu.png'
-          },
-          player: {
-            id: 890,
-            name: 'Bruno Fernandes'
-          },
-          assist: {
-            id: null,
-            name: null
-          },
-          type: 'Card',
-          detail: 'Yellow Card',
-          comments: 'Unsporting behaviour'
-        }
-      ]
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      getFixtureEvents: vi.fn().mockResolvedValue(sampleMatchEventsResponse),
+      getFixtures: vi.fn().mockResolvedValue(sampleFixturesApiResponse)
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_match_events tool not implemented')
-    }).toThrow('get_match_events tool not implemented')
+    getMatchEventsTool = new GetMatchGoalsTool(mockApiClient as any, cache)
   })
 
-  it('should validate required fixtureId parameter', () => {
-    // Test that fixtureId is required and must be a number
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_match_events tool not implemented')
-    }).toThrow('get_match_events tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should validate match event structure', () => {
-    // Test event time, team, player, assist fields
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('get_match_goals')
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_match_events tool not implemented')
-    }).toThrow('get_match_events tool not implemented')
+    expect(getMatchEventsTool.name).toBe(contract.name)
+    expect(getMatchEventsTool.description).toBe(contract.description)
+    expect(getMatchEventsTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('should handle nullable fields in events', () => {
-    // Test that assist.id, assist.name, time.extra, comments can be null
+  it('returns fixture and event data that satisfy the documented schema', async () => {
+    const result = await getMatchEventsTool.call({ params: { fixtureId: 1200001 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_match_events tool not implemented')
-    }).toThrow('get_match_events tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.fixture).toMatchObject({
+      id: 1200001,
+      referee: expect.any(String),
+      timezone: expect.any(String),
+      date: expect.any(String),
+      status: {
+        long: expect.any(String),
+        short: expect.any(String)
+      },
+      teams: {
+        home: {
+          id: expect.any(Number),
+          name: expect.any(String)
+        },
+        away: {
+          id: expect.any(Number),
+          name: expect.any(String)
+        }
+      }
+    })
+
+    expect(Array.isArray(payload.events)).toBe(true)
+    expect(payload.events.length).toBeGreaterThan(0)
+    expect(payload.events[0]).toMatchObject({
+      time: {
+        elapsed: expect.any(Number)
+      },
+      team: {
+        id: expect.any(Number),
+        name: expect.any(String)
+      },
+      player: {
+        id: expect.any(Number),
+        name: expect.any(String)
+      },
+      type: expect.any(String),
+      detail: expect.any(String)
+    })
+
+    expect(mockApiClient.getFixtureEvents).toHaveBeenCalledWith(1200001)
+    expect(mockApiClient.getFixtures).toHaveBeenCalledWith({ id: 1200001 })
   })
 
-  it('should validate event types and details', () => {
-    // Test different event types: Goal, Card, Substitution, etc.
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_match_events tool not implemented')
-    }).toThrow('get_match_events tool not implemented')
+  it('rejects invalid fixture identifiers before hitting the API', async () => {
+    const result = await getMatchEventsTool.call({ params: { fixtureId: -5 } } as any)
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain('fixtureId must be a positive number')
+    expect(mockApiClient.getFixtureEvents).not.toHaveBeenCalled()
   })
 })

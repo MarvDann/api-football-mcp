@@ -70,14 +70,14 @@ Options:
 
 Endpoints:
   standings           Get current season standings
-  fixtures            Get fixtures (season=YYYY team=ID from=YYYY-MM-DD to=YYYY-MM-DD)
+  fixtures            Get fixtures (season=YYYY team=ID date=YYYY-MM-DD from=YYYY-MM-DD to=YYYY-MM-DD round="Regular Season - N")
   live-fixtures       Get live fixtures
   teams               Get teams (season=YYYY search=query)
   team                Get single team (id=ID season=YYYY)
   players             Get players (team=ID season=YYYY search=query page=N)
   player              Get single player (id=ID season=YYYY)
   squad               Get team squad (team=ID season=YYYY)
-  events              Get fixture events (fixture=ID)
+  goals               Get match goal events (fixture=ID)
   rate-limit          Show rate limit info
 
 Parameters:
@@ -148,6 +148,7 @@ function createFixturesParams (params: Record<string, string>) {
     to?: string
     date?: string
     status?: string
+    round?: string
     limit?: number
   } = {}
 
@@ -165,6 +166,7 @@ function createFixturesParams (params: Record<string, string>) {
   if (params.to) result.to = params.to
   if (params.date) result.date = params.date
   if (params.status) result.status = params.status
+  if (params.round) result.round = params.round
 
   if (params.limit) {
     const limit = safeParseInt(params.limit)
@@ -301,21 +303,27 @@ const main = safeAsync(async (): Promise<void> => {
         logger.error('Error: squad endpoint requires team parameter')
         process.exit(1)
       }
+      if (!options.params.season) {
+        logger.error('Error: squad endpoint now requires season parameter (e.g., season=2025)')
+        process.exit(1)
+      }
       const teamId = safeParseInt(options.params.team)
+      const season = safeParseInt(options.params.season)
       if (!teamId) {
         logger.error('Error: team id must be a valid number')
         process.exit(1)
       }
-      response = await client.getSquad(
-        teamId,
-        safeParseInt(options.params.season)
-      )
+      if (!season) {
+        logger.error('Error: season must be a valid number (e.g., 2025)')
+        process.exit(1)
+      }
+      response = await client.getPlayers({ team: teamId, season, page: 1 })
       break
     }
 
-    case 'events': {
+    case 'goals': {
       if (!options.params.fixture) {
-        logger.error('Error: events endpoint requires fixture parameter')
+        logger.error('Error: goals endpoint requires fixture parameter')
         process.exit(1)
       }
       const fixtureId = safeParseInt(options.params.fixture)
@@ -342,9 +350,78 @@ const main = safeAsync(async (): Promise<void> => {
   }
 
   if (response.response) {
-    logger.info(formatOutput(response.response, options.format))
+    let payload: any = response.response
+
+    // Smart table formatting for fixtures
+    if (options.endpoint === 'fixtures' && options.format === 'table' && Array.isArray(payload)) {
+      payload = payload.map((f: any) => ({
+        id: f.fixture?.id,
+        date: (f.fixture?.date || '').slice(0, 10),
+        round: f.league?.round,
+        home: f.teams?.home?.name,
+        away: f.teams?.away?.name,
+        score: `${f.goals?.home ?? '-'}-${f.goals?.away ?? '-'}`,
+        status: f.fixture?.status?.short
+      }))
+    }
+
+    // Filter events to goals only, and optionally render a concise table
+    if (options.endpoint === 'goals' && Array.isArray(payload)) {
+      payload = payload.filter((e: any) => (e?.type || '').toLowerCase() === 'goal')
+
+      if (options.format === 'table') {
+        payload = payload.map((e: any) => ({
+          min: e?.time?.elapsed,
+          team: e?.team?.name,
+          scorer: e?.player?.name,
+          assist: e?.assist?.name || '',
+          detail: e?.detail
+        }))
+      }
+    }
+
+    // Transform squad output (derived from /players) to match players/squads fields
+    if (options.endpoint === 'squad' && Array.isArray(payload)) {
+      const basic = payload.map((p: any) => ({
+        id: p?.player?.id,
+        name: p?.player?.name,
+        firstname: p?.player?.firstname,
+        lastname: p?.player?.lastname,
+        age: p?.player?.age,
+        birthDate: p?.player?.birth?.date,
+        birthPlace: p?.player?.birth?.place,
+        birthCountry: p?.player?.birth?.country,
+        nationality: p?.player?.nationality,
+        height: p?.player?.height,
+        weight: p?.player?.weight,
+        injured: !!p?.player?.injured,
+        photo: p?.player?.photo
+      }))
+
+      if (options.format === 'table') {
+        // Keep order stable by returning array of objects with fixed keys
+        payload = basic
+      } else {
+        payload = basic
+      }
+    }
+
+    {
+      const output = formatOutput(payload, options.format)
+      if (options.format === 'table') {
+        // Print raw table without the INFO: prefix so columns align
+        console.log(`\n${output}`)
+      } else {
+        logger.info(output)
+      }
+    }
   } else {
-    logger.info(formatOutput(response, options.format))
+    const output = formatOutput(response, options.format)
+    if (options.format === 'table') {
+      console.log(`\n${output}`)
+    } else {
+      logger.info(output)
+    }
   }
 
   if (options.verbose && response.paging) {

@@ -1,100 +1,111 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { GetStandingsTool } from '../../src/lib/tools/get-standings'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import { sampleStandingsApiResponse } from '../helpers/sample-responses'
 
-describe('get_standings contract test', () => {
-  it('should validate input schema for get_standings tool', () => {
-    // This test will fail until the get_standings tool is implemented
-    // Input validation: season parameter should be optional number between 1992-2025
-    const validInputs = [
-      {}, // No season (should default to current)
-      { season: 2024 },
-      { season: 1992 }, // Minimum year
-      { season: 2025 } // Maximum year
-    ]
+describe('Contract: get_standings tool', () => {
+  let cache: LRUCache
+  let getStandingsTool: GetStandingsTool
+  let mockApiClient: { getStandings: ReturnType<typeof vi.fn> }
 
-    const invalidInputs = [
-      { season: 1991 }, // Below minimum
-      { season: 2026 }, // Above maximum
-      { season: 'invalid' }, // Wrong type
-      { season: null }
-    ]
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_standings tool not implemented')
-    }).toThrow('get_standings tool not implemented')
-  })
-
-  it('should validate output schema for get_standings tool', () => {
-    // Expected output structure based on contract:
-    const expectedOutput = {
-      standings: [
-        {
-          rank: 1,
-          team: {
-            id: 50,
-            name: 'Manchester City',
-            logo: 'https://example.com/logo.png'
-          },
-          points: 80,
-          goalsDiff: 45,
-          form: 'WWWWW',
-          status: 'same',
-          description: 'Champions League',
-          all: {
-            played: 30,
-            win: 25,
-            draw: 5,
-            lose: 0,
-            goals: {
-              for: 75,
-              against: 30
-            }
-          },
-          home: {
-            played: 15,
-            win: 13,
-            draw: 2,
-            lose: 0,
-            goals: {
-              for: 40,
-              against: 10
-            }
-          },
-          away: {
-            played: 15,
-            win: 12,
-            draw: 3,
-            lose: 0,
-            goals: {
-              for: 35,
-              against: 20
-            }
-          },
-          update: '2024-01-14T12:00:00Z'
-        }
-      ],
-      lastUpdated: '2024-01-14T12:00:00Z'
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      getStandings: vi.fn()
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_standings tool not implemented')
-    }).toThrow('get_standings tool not implemented')
+    getStandingsTool = new GetStandingsTool(mockApiClient as any, cache)
   })
 
-  it('should handle default season parameter', () => {
-    // Test that when no season is provided, it defaults to current season
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_standings tool not implemented')
-    }).toThrow('get_standings tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should validate season range constraints', () => {
-    // Test that season must be between 1992 and 2025
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_standings tool not implemented')
-    }).toThrow('get_standings tool not implemented')
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('get_standings')
+
+    expect(getStandingsTool.name).toBe(contract.name)
+    expect(getStandingsTool.description).toBe(contract.description)
+    expect(getStandingsTool.inputSchema).toEqual(contract.inputSchema)
+  })
+
+  it('produces output that satisfies the contract schema', async () => {
+    mockApiClient.getStandings.mockResolvedValue(sampleStandingsApiResponse)
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+    const result = await getStandingsTool.call({ params: { season: 2024 } } as any)
+
+    vi.useRealTimers()
+
+    expect(result.isError).toBeUndefined()
+    expect(result.content).toHaveLength(1)
+
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload).toHaveProperty('standings')
+    expect(Array.isArray(payload.standings)).toBe(true)
+    expect(payload.standings.length).toBeGreaterThan(0)
+
+    const standing = payload.standings[0]
+    expect(standing).toMatchObject({
+      rank: expect.any(Number),
+      team: {
+        id: expect.any(Number),
+        name: expect.any(String),
+        logo: expect.any(String)
+      },
+      points: expect.any(Number),
+      goalsDiff: expect.any(Number),
+      group: expect.any(String),
+      form: expect.any(String),
+      status: expect.any(String),
+      all: {
+        played: expect.any(Number),
+        win: expect.any(Number),
+        draw: expect.any(Number),
+        lose: expect.any(Number),
+        goals: {
+          for: expect.any(Number),
+          against: expect.any(Number)
+        }
+      },
+      home: {
+        played: expect.any(Number),
+        win: expect.any(Number),
+        draw: expect.any(Number),
+        lose: expect.any(Number),
+        goals: {
+          for: expect.any(Number),
+          against: expect.any(Number)
+        }
+      },
+      away: {
+        played: expect.any(Number),
+        win: expect.any(Number),
+        draw: expect.any(Number),
+        lose: expect.any(Number),
+        goals: {
+          for: expect.any(Number),
+          against: expect.any(Number)
+        }
+      },
+      update: expect.any(String)
+    })
+
+    expect(payload).toHaveProperty('lastUpdated', '2025-01-15T12:00:00.000Z')
+
+    // Ensure we called the API client with the requested season
+    expect(mockApiClient.getStandings).toHaveBeenCalledWith(2024)
+  })
+
+  it('returns a contract-compliant error when season exceeds documented limits', async () => {
+    const result = await getStandingsTool.call({ params: { season: 1980 } } as any)
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain('Season must be between')
   })
 })

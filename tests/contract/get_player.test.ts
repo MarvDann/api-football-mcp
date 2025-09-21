@@ -1,111 +1,97 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { GetPlayerTool } from '../../src/lib/tools/get-player'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import { samplePlayerResponse, samplePlayerSearchResponse } from '../helpers/sample-responses'
 
-describe('get_player contract test', () => {
-  it('should validate input schema for get_player tool', () => {
-    // Valid inputs - requires either playerId or name
-    const validInputs = [
-      { playerId: 284 },
-      { name: 'Erling Haaland' },
-      { playerId: 284, season: 2024 },
-      { name: 'Kevin De Bruyne', season: 2023 },
-      { playerId: 284, name: 'Erling Haaland', season: 2024 } // Both provided
-    ]
+interface MockApiClient {
+  getPlayer: ReturnType<typeof vi.fn>
+  searchPlayers: ReturnType<typeof vi.fn>
+}
 
-    const invalidInputs = [
-      {}, // Neither playerId nor name provided
-      { playerId: 'invalid' }, // Wrong type
-      { name: 123 }, // Wrong type
-      { season: 'invalid' }, // Wrong season type
-      { season: null }
-    ]
+describe('Contract: get_player tool', () => {
+  let cache: LRUCache
+  let getPlayerTool: GetPlayerTool
+  let mockApiClient: MockApiClient
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
-  })
-
-  it('should validate output schema for get_player tool', () => {
-    const expectedOutput = {
-      player: {
-        id: 284,
-        name: 'Erling Haaland',
-        firstname: 'Erling',
-        lastname: 'Haaland',
-        age: 24,
-        birthDate: '2000-07-21',
-        birthPlace: 'Leeds',
-        birthCountry: 'England',
-        nationality: 'Norway',
-        height: '194 cm',
-        weight: '88 kg',
-        photo: 'https://example.com/haaland.jpg',
-        position: 'Attacker',
-        number: 9
-      },
-      statistics: {
-        playerId: 284,
-        teamId: 50,
-        season: 2024,
-        appearances: 30,
-        lineups: 28,
-        minutes: 2520,
-        goals: 25,
-        assists: 8,
-        yellowCards: 2,
-        redCards: 0,
-        rating: 8.5
-      }
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      getPlayer: vi.fn().mockResolvedValue(samplePlayerResponse),
+      searchPlayers: vi.fn().mockResolvedValue(samplePlayerSearchResponse)
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
+    getPlayerTool = new GetPlayerTool(mockApiClient as any, cache)
   })
 
-  it('should validate anyOf constraint - playerId OR name required', () => {
-    // Test that at least one of playerId or name is required
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should handle optional season parameter for statistics', () => {
-    // Test that season parameter affects player statistics
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('get_player')
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
+    expect(getPlayerTool.name).toBe(contract.name)
+    expect(getPlayerTool.description).toBe(contract.description)
+    expect(getPlayerTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('should validate player data structure', () => {
-    // Test required player fields
+  it('returns player data and statistics that satisfy the documented schema', async () => {
+    const result = await getPlayerTool.call({ params: { playerId: 278, season: 2024 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.player).toMatchObject({
+      id: 278,
+      name: 'Erling Haaland',
+      firstname: 'Erling',
+      lastname: 'Haaland',
+      age: expect.any(Number),
+      birthDate: expect.any(String),
+      birthPlace: expect.any(String),
+      birthCountry: expect.any(String),
+      nationality: 'Norway',
+      height: expect.any(String),
+      weight: expect.any(String),
+      photo: expect.any(String)
+    })
+
+    expect(payload.statistics).toMatchObject({
+      playerId: 278,
+      teamId: 50,
+      season: 2024,
+      appearances: expect.any(Number),
+      lineups: expect.any(Number),
+      minutes: expect.any(Number),
+      goals: expect.any(Number),
+      assists: expect.any(Number),
+      yellowCards: expect.any(Number),
+      redCards: expect.any(Number),
+      rating: expect.any(Number)
+    })
+
+    expect(mockApiClient.getPlayer).toHaveBeenCalledWith(278, 2024)
   })
 
-  it('should validate player statistics structure', () => {
-    // Test statistics object structure
+  it('supports lookups by player name through the documented contract', async () => {
+    const result = await getPlayerTool.call({ params: { name: 'Marcus Rashford', season: 2024 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.player.name).toBe('Marcus Rashford')
+    expect(mockApiClient.searchPlayers).toHaveBeenCalledWith('Marcus Rashford', {
+      season: 2024,
+      page: 1
+    })
   })
 
-  it('should validate numeric fields in statistics', () => {
-    // Test that all numeric fields are properly typed
+  it('rejects requests without identifiers as required by the contract', async () => {
+    const result = await getPlayerTool.call({ params: {} } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_player tool not implemented')
-    }).toThrow('get_player tool not implemented')
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain('Either playerId or name must be provided')
   })
 })

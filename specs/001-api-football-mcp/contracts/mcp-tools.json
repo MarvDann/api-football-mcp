@@ -31,6 +31,24 @@
       }
     },
     {
+      "name": "get_rate_limit",
+      "description": "Get current API rate-limit status (limit, remaining, waitTime)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "number" },
+          "remaining": { "type": "number" },
+          "shouldWait": { "type": "boolean" },
+          "waitTimeMs": { "type": "number" },
+          "advice": { "type": "string" }
+        }
+      }
+    },
+    {
       "name": "get_fixtures",
       "description": "Get fixtures by date range, team, or status",
       "inputSchema": {
@@ -43,6 +61,11 @@
           "teamId": {
             "type": "number",
             "description": "Filter by team ID"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Specific date (YYYY-MM-DD)"
           },
           "from": {
             "type": "string",
@@ -58,12 +81,6 @@
             "type": "string",
             "enum": ["NS", "1H", "HT", "2H", "FT", "LIVE"],
             "description": "Filter by match status"
-          },
-          "limit": {
-            "type": "number",
-            "description": "Maximum number of fixtures to return",
-            "default": 50,
-            "maximum": 100
           }
         }
       },
@@ -158,8 +175,8 @@
       }
     },
     {
-      "name": "get_match_events",
-      "description": "Get events from a specific match",
+      "name": "get_match_goals",
+      "description": "Get goal events from a specific match",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -182,6 +199,28 @@
               "$ref": "#/definitions/MatchEvent"
             }
           }
+        }
+      }
+    },
+    {
+      "name": "get_squad",
+      "description": "Get a team's squad for a given season",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "teamId": { "type": "number", "description": "Team ID" },
+          "season": { "type": "number", "description": "Season year (YYYY)" }
+        },
+        "required": ["teamId", "season"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "squad": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Player" }
+          },
+          "total": { "type": "number" }
         }
       }
     },
@@ -286,6 +325,7 @@
         "id": {"type": "number"},
         "name": {"type": "string"},
         "code": {"type": "string"},
+        "country": {"type": "string"},
         "logo": {"type": "string"},
         "founded": {"type": "number"},
         "venue": {

@@ -72,7 +72,8 @@ export class GetLiveMatchesTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in get_live_matches:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in get_live_matches', error as any)
 
       return {
         content: [{

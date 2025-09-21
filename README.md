@@ -1,10 +1,10 @@
 # API-Football MCP Server
 
-A Model Context Protocol (MCP) server providing Premier League football data (1992-present) via the API-Sports API-Football service.
+A Model Context Protocol (MCP) server providing football data via the API-Sports API-Football service.
 
 ## Features
 
-- **Complete Premier League Coverage**: Historical data from 1992-93 season to present
+- **Historical Coverage**: Premier League historical data (typically 2002–present per API‑Football v3 coverage)
 - **Real-time Data**: Live match events, current standings, and fixture information
 - **Intelligent Caching**: LRU cache with TTL for optimal performance
 - **Rate Limiting**: Built-in rate limit handling with exponential backoff
@@ -16,13 +16,21 @@ A Model Context Protocol (MCP) server providing Premier League football data (19
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `get_standings` | Get Premier League standings | `season?` (number) |
-| `get_fixtures` | Get match fixtures | `season?`, `team?`, `from?`, `to?`, `date?`, `status?`, `limit?` |
-| `get_team` | Get team information and squad | `id` (required), `season?` |
-| `get_player` | Get player profile and statistics | `id` (required), `season?` |
-| `get_match_events` | Get match events (goals, cards, etc.) | `fixture` (required) |
-| `search_teams` | Search for teams by name | `query` (required), `season?` |
+| `get_fixtures` | Get match fixtures | `season?`, `teamId?`, `date?`, `from?`, `to?`, `status?`, `round?` |
+| `get_team` | Get team information and optional season squad | `teamId?` or `name?`, `season?` |
+| `get_player` | Get player profile and statistics | `playerId?` or `name?`, `season?` |
+| `get_match_goals` | Get goal events for a match | `fixtureId` (required) |
+| `get_squad` | Get a team's squad for a season | `teamId` (required), `season` (required) |
+| `search_teams` | Search for teams by name | `query?`, `season?` |
 | `search_players` | Search for players | `query` (required), `team?`, `season?`, `page?` |
 | `get_live_matches` | Get currently live matches | None |
+| `get_rate_limit` | Get current API rate-limit status | None |
+
+## Data Coverage Notes
+
+- Historical coverage for the English Premier League via API‑Football v3 is commonly available from the 2002 season onwards. Earlier seasons (pre‑2002) may be incomplete or unavailable depending on the specific endpoint.
+- If you need season‑specific squads, use `season` with `get_team` (internally uses the `/players` endpoint) or the CLI `--endpoint squad team=<id> season=<YYYY>` helper.
+- Fixture queries support `round` in the form `"Regular Season - N"` in addition to `season`, `date`, and `from`/`to`.
 
 ## Installation
 
@@ -73,6 +81,104 @@ pnpm start
 node dist/server.js
 ```
 
+### MCP Client Configuration
+
+Below are example configurations for popular MCP-capable agents. All examples launch this server over stdio. Replace ${API_FOOTBALL_KEY} with your key or rely on your shell environment.
+
+- Claude Desktop (claude_desktop_config.json):
+```json
+{
+  "mcpServers": {
+    "api-football": {
+      "command": "node",
+      "args": ["dist/server.js"],
+      "env": {
+        "API_FOOTBALL_KEY": "${API_FOOTBALL_KEY}",
+        "NODE_ENV": "production",
+        "LOG_TO_FILE": "true",
+        "LOG_DIR": "./logs",
+        "LOG_ROTATE_INTERVAL": "1d"
+      }
+    }
+  }
+}
+```
+
+- Claude Code (VS Code settings.json):
+```json
+{
+  "claudeCode.mcpServers": [
+    {
+      "name": "api-football",
+      "command": "node",
+      "args": ["dist/server.js"],
+      "env": {
+        "API_FOOTBALL_KEY": "${API_FOOTBALL_KEY}",
+        "NODE_ENV": "production",
+        "LOG_TO_FILE": "true",
+        "LOG_DIR": "./logs"
+      }
+    }
+  ]
+}
+```
+
+- Cursor (settings JSON):
+```json
+{
+  "mcpServers": {
+    "api-football": {
+      "command": "node",
+      "args": ["dist/server.js"],
+      "env": {
+        "API_FOOTBALL_KEY": "${API_FOOTBALL_KEY}",
+        "NODE_ENV": "production",
+        "LOG_TO_FILE": "true",
+        "LOG_DIR": "./logs"
+      }
+    }
+  }
+}
+```
+
+- Gemini (CLI/desktop MCP support):
+```json
+{
+  "mcpServers": {
+    "api-football": {
+      "command": "node",
+      "args": ["dist/server.js"],
+      "env": {
+        "API_FOOTBALL_KEY": "${API_FOOTBALL_KEY}",
+        "NODE_ENV": "production",
+        "LOG_TO_FILE": "true",
+        "LOG_DIR": "./logs"
+      }
+    }
+  }
+}
+```
+
+- Codex CLI (local agent):
+```json
+{
+  "mcpServers": {
+    "api-football": {
+      "command": "node",
+      "args": ["dist/server.js"],
+      "env": {
+        "API_FOOTBALL_KEY": "${API_FOOTBALL_KEY}",
+        "NODE_ENV": "production",
+        "LOG_TO_FILE": "true",
+        "LOG_DIR": "./logs"
+      }
+    }
+  }
+}
+```
+
+Tools available to agents include: get_standings, get_fixtures, get_team, get_player, get_squad, get_match_goals, get_live_matches, search_teams, search_players, get_rate_limit.
+
 ### CLI Tools
 
 #### Server Management
@@ -106,6 +212,9 @@ node dist/cli/api-client.js --endpoint teams search="Arsenal"
 
 # Get player information
 node dist/cli/api-client.js --endpoint player id=276 --format table
+
+# Get goal events for a fixture
+node dist/cli/api-client.js --endpoint goals fixture=123456 --format table
 
 # Check rate limit status
 node dist/cli/api-client.js --endpoint rate-limit --format table
@@ -163,8 +272,18 @@ pnpm run dev          # Watch mode with hot reload
 pnpm run build        # Build TypeScript
 pnpm run lint         # Run ESLint
 pnpm run test         # Run all tests
-pnpm run test:unit    # Run unit tests only
-pnpm run test:watch   # Watch mode for tests
+
+# Offline test suite (no real API calls)
+pnpm run test:offline   # unit + contract + performance (mocked)
+
+# Online tests (may hit API-Football; respect rate limits)
+pnpm run test:online
+
+# Run specific categories
+pnpm run test:unit
+pnpm run test:contract
+pnpm run test:performance
+pnpm run test:integration
 
 # Type checking
 npx tsc --noEmit      # Type check without compilation
@@ -388,3 +507,11 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 ---
 
 Built with ❤️ using TypeScript, Node.js, and the Model Context Protocol.
+- Rate Limiting for Agents
+  - Use the `get_rate_limit` tool to inspect the current limit, remaining, and recommended wait time.
+  - The server applies exponential backoff on 429 and tracks vendor headers. Tests space calls by ~3.5s.
+  - Best practices for agents:
+    - Batch related queries and cache where possible
+    - Pace calls (>= 3.5s apart) during exploration
+    - Handle 429 and retry after the suggested delay
+    - Prefer season filters to reduce payload sizes

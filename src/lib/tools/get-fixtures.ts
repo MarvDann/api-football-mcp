@@ -9,10 +9,10 @@ import { createApiParams } from '../utils/object-utils'
 export interface GetFixturesParams {
   season?: number
   teamId?: number
+  date?: string
   from?: string
   to?: string
   status?: 'NS' | '1H' | 'HT' | '2H' | 'FT' | 'LIVE'
-  limit?: number
 }
 
 export interface GetFixturesResult {
@@ -36,6 +36,11 @@ export class GetFixturesTool implements Tool {
         type: 'number' as const,
         description: 'Filter by team ID'
       },
+      date: {
+        type: 'string' as const,
+        format: 'date' as const,
+        description: 'Specific date (YYYY-MM-DD)'
+      },
       from: {
         type: 'string' as const,
         format: 'date' as const,
@@ -50,12 +55,6 @@ export class GetFixturesTool implements Tool {
         type: 'string' as const,
         enum: ['NS', '1H', 'HT', '2H', 'FT', 'LIVE'] as const,
         description: 'Filter by match status'
-      },
-      limit: {
-        type: 'number' as const,
-        description: 'Maximum number of fixtures to return',
-        default: 50,
-        maximum: 100
       }
     }
   } as any
@@ -101,25 +100,15 @@ export class GetFixturesTool implements Tool {
         }
       }
 
-      // Validate limit
-      if (params.limit && (params.limit < 1 || params.limit > 100)) {
-        return {
-          content: [{
-            type: 'text',
-            text: 'Error: limit must be between 1 and 100'
-          }],
-          isError: true
-        }
-      }
 
       // Generate cache key
       const cacheKey = CacheKeys.fixtures(createApiParams({
         season: params.season,
         team: params.teamId,
+        date: params.date,
         from: params.from,
         to: params.to,
-        status: params.status,
-        limit: params.limit
+        status: params.status
       }))
 
       // Try to get from cache first
@@ -137,14 +126,17 @@ export class GetFixturesTool implements Tool {
       const apiResponse = await this.apiClient.getFixtures(createApiParams({
         season: params.season,
         team: params.teamId,
+        date: params.date,
         from: params.from,
         to: params.to,
-        status: params.status,
-        limit: params.limit || 50
+        status: params.status
       }))
 
-      // Parse and format the response
-      const fixtures = apiResponse.response.map((item: any) => parseFixture(item))
+      // Parse and format the response, ensure fixture id is explicitly included
+      const fixtures = apiResponse.response.map((item: any) => {
+        const f = parseFixture(item)
+        return { fixtureId: f.id, ...f }
+      })
 
       const result: GetFixturesResult = {
         fixtures,
@@ -163,7 +155,8 @@ export class GetFixturesTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in get_fixtures:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in get_fixtures', error as any)
 
       return {
         content: [{

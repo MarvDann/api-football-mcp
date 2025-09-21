@@ -1,116 +1,78 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { SearchTeamsTool } from '../../src/lib/tools/search-teams'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import { sampleTeamByIdResponse, sampleTeamSearchResponse } from '../helpers/sample-responses'
 
-describe('search_teams contract test', () => {
-  it('should validate input schema for search_teams tool', () => {
-    // Valid inputs - all parameters are optional
-    const validInputs = [
-      {}, // No parameters (should return all teams)
-      { query: 'Manchester' },
-      { season: 2024 },
-      { query: 'United', season: 2023 },
-      { query: 'Arsenal' },
-      { season: 1992 } // Minimum season
-    ]
+describe('Contract: search_teams tool', () => {
+  let cache: LRUCache
+  let searchTeamsTool: SearchTeamsTool
+  let mockApiClient: {
+    searchTeams: ReturnType<typeof vi.fn>
+    getTeams: ReturnType<typeof vi.fn>
+  }
 
-    const invalidInputs = [
-      { query: 123 }, // Wrong type
-      { season: 'invalid' }, // Wrong type
-      { season: null },
-      { query: null }
-    ]
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
-  })
-
-  it('should validate output schema for search_teams tool', () => {
-    const expectedOutput = {
-      teams: [
-        {
-          id: 33,
-          name: 'Manchester United',
-          code: 'MUN',
-          logo: 'https://example.com/mu.png',
-          founded: 1878,
-          venue: {
-            id: 556,
-            name: 'Old Trafford',
-            city: 'Manchester',
-            capacity: 74310,
-            surface: 'grass',
-            image: 'https://example.com/old-trafford.jpg'
-          }
-        },
-        {
-          id: 50,
-          name: 'Manchester City',
-          code: 'MCI',
-          logo: 'https://example.com/mc.png',
-          founded: 1880,
-          venue: {
-            id: 555,
-            name: 'Etihad Stadium',
-            city: 'Manchester',
-            capacity: 55017,
-            surface: 'grass',
-            image: 'https://example.com/etihad.jpg'
-          }
-        }
-      ],
-      total: 2
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      searchTeams: vi.fn().mockResolvedValue(sampleTeamSearchResponse),
+      getTeams: vi.fn().mockResolvedValue(sampleTeamByIdResponse)
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
+    searchTeamsTool = new SearchTeamsTool(mockApiClient as any, cache)
   })
 
-  it('should handle empty query parameter', () => {
-    // Test behavior when no query is provided - should return all EPL teams
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should handle season parameter for historical teams', () => {
-    // Test that season parameter returns teams from that specific season
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('search_teams')
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
+    expect(searchTeamsTool.name).toBe(contract.name)
+    expect(searchTeamsTool.description).toBe(contract.description)
+    expect(searchTeamsTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('should validate team data structure', () => {
-    // Test required fields: id, name, code, logo, founded
-    // Test venue structure: id, name, city, capacity, surface, image
+  it('returns matching teams that satisfy the documented schema', async () => {
+    const result = await searchTeamsTool.call({ params: { query: 'Arsenal' } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(Array.isArray(payload.teams)).toBe(true)
+    expect(payload.total).toBe(payload.teams.length)
+    expect(payload.teams.length).toBeGreaterThan(0)
+
+    const team = payload.teams[0]
+    expect(team).toMatchObject({
+      id: 42,
+      name: 'Arsenal',
+      code: 'ARS',
+      country: 'England',
+      founded: 1886,
+      logo: expect.any(String),
+      venue: {
+        id: expect.any(Number),
+        name: expect.any(String),
+        city: expect.any(String),
+        capacity: expect.any(Number),
+        surface: expect.any(String),
+        image: expect.any(String)
+      }
+    })
+
+    expect(mockApiClient.searchTeams).toHaveBeenCalledWith('Arsenal')
   })
 
-  it('should validate search functionality', () => {
-    // Test partial name matching for query parameter
+  it('returns all Premier League teams for a season when no query is supplied', async () => {
+    const result = await searchTeamsTool.call({ params: { season: 2024 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
-  })
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
 
-  it('should validate total count accuracy', () => {
-    // Test that total field matches actual teams array length
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('search_teams tool not implemented')
-    }).toThrow('search_teams tool not implemented')
+    expect(mockApiClient.getTeams).toHaveBeenCalledWith(2024)
+    expect(payload.teams.every((team: any) => team.country === 'England')).toBe(true)
   })
 })

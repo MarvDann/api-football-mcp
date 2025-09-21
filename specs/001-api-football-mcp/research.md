@@ -76,7 +76,7 @@
 ### Decision: League ID 39 for Premier League
 - **Rationale**: API-Football's official ID for English Premier League
 - **Season Format**: Years as YYYY (e.g., 2024 for 2024-25 season)
-- **Historic Coverage**: 1992-1993 season onwards (Premier League era)
+- **Historic Coverage (practical)**: API-Football v3 typically provides reliable historical data from the 2002 season onwards for EPL. Earlier seasons (pre-2002) may be incomplete or unavailable depending on endpoint.
 - **Data Points**: All requirements met (standings, fixtures, squads, players, events)
 - **Alternatives considered**:
   - Multiple league support (scope creep, not in requirements)

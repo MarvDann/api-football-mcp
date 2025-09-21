@@ -130,7 +130,7 @@ export class DataService {
     return this.cachedApiCall(
       cacheKey,
       cacheType,
-      () => this.apiClient.searchTeams(query, season),
+      () => this.apiClient.searchTeams(query),
       options,
       'searchTeams',
       params

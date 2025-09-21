@@ -86,10 +86,8 @@ export class GetMatchEventsTool implements Tool {
         }
       }
 
-      // Get fixture details as well
-      const fixturesResponse = await this.apiClient.getFixtures({
-        // We need to get fixture by ID - the API client should support this
-      })
+      // Get fixture details as well (query by id only)
+      const fixturesResponse = await this.apiClient.getFixtures({ id: params.fixtureId })
 
       let fixture: any = null
 
@@ -101,8 +99,10 @@ export class GetMatchEventsTool implements Tool {
         }
       }
 
-      // Parse events
-      const events = eventsResponse.response.map((eventData: any) => parseMatchEvent(eventData))
+      // Filter out non-goal events for now
+      const events = eventsResponse.response
+        .filter((eventData: any) => eventData?.type === 'Goal')
+        .map((eventData: any) => parseMatchEvent(eventData))
 
       const result: GetMatchEventsResult = {
         fixture: fixture || { id: params.fixtureId },

@@ -9,6 +9,7 @@ import { ToolRegistry } from './lib/tools/registry'
 import { registerToolHandlers, logToolRegistration, createHealthCheck } from './lib/server/register-tools'
 import { handleError, MCPErrors } from './lib/server/errors'
 import { PACKAGE_INFO } from './constants'
+import { logger as appLogger } from './lib/logger/logger'
 
 interface ServerConfig {
   name: string
@@ -71,23 +72,23 @@ class APIFootballMCPServer {
   private setupErrorHandling (): void {
     // Handle uncaught errors
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught exception:', error)
+      appLogger.error('Uncaught exception', error as any)
       this.shutdown(1)
     })
 
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled rejection at:', promise, 'reason:', reason)
+      appLogger.error('Unhandled rejection', new Error(String(reason)))
       this.shutdown(1)
     })
 
     // Handle shutdown signals
     process.on('SIGINT', () => {
-      console.log('\nReceived SIGINT, shutting down gracefully...')
+      appLogger.info('Received SIGINT, shutting down gracefully...')
       this.shutdown(0)
     })
 
     process.on('SIGTERM', () => {
-      console.log('Received SIGTERM, shutting down gracefully...')
+      appLogger.info('Received SIGTERM, shutting down gracefully...')
       this.shutdown(0)
     })
   }
@@ -95,9 +96,8 @@ class APIFootballMCPServer {
   async start (): Promise<void> {
     try {
       // Log startup information
-      console.log('🚀 Starting API-Football MCP Server...')
-      console.log(`   Name: ${this.name} v${this.version}`)
-      console.log(`   Cache size: ${this.cache.size()}/${this.cache.getStats().maxSize} entries`)
+      appLogger.info(`Starting API-Football MCP Server: ${this.name} v${this.version}`)
+      appLogger.info(`Cache entries: ${this.cache.size()}/${this.cache.getStats().maxSize}`)
 
       // Log tool registration
       logToolRegistration(this.toolRegistry)
@@ -106,38 +106,36 @@ class APIFootballMCPServer {
       const transport = new StdioServerTransport()
       await this.server.connect(transport)
 
-      console.log('✅ API-Football MCP Server started successfully')
-      console.log('   Listening on stdio transport')
-      console.log('   Server ready to handle tool calls')
+      appLogger.info('API-Football MCP Server started successfully (stdio transport)')
 
       // Log health check
       const health = createHealthCheck(this.toolRegistry)
-      console.log('📊 Health check:', JSON.stringify(health, null, 2))
+      appLogger.info('Health check', { health })
 
     } catch (error) {
-      console.error('❌ Failed to start server:', error)
+      appLogger.error('Failed to start server', error as any)
       throw handleError(error)
     }
   }
 
   private shutdown (exitCode: number): void {
-    console.log('🛑 Shutting down API-Football MCP Server...')
+    appLogger.info('Shutting down API-Football MCP Server...')
 
     try {
       // Log final cache statistics
       const cacheStats = this.cache.getStats()
-      console.log('📈 Final cache statistics:', JSON.stringify(cacheStats, null, 2))
+      appLogger.info('Final cache statistics', { cacheStats })
 
       // Log final rate limit info
       const rateLimitInfo = this.apiClient.getRateLimitInfo()
-      console.log('⚡ Rate limit status:', JSON.stringify(rateLimitInfo, null, 2))
+      appLogger.info('Rate limit status', { rateLimitInfo })
 
       // Cleanup cache
       this.cache.destroy()
 
-      console.log('✅ Shutdown complete')
+      appLogger.info('Shutdown complete')
     } catch (error) {
-      console.error('❌ Error during shutdown:', error)
+      appLogger.error('Error during shutdown', error as any)
     }
 
     process.exit(exitCode)
@@ -178,7 +176,7 @@ async function main (): Promise<void> {
     await server.start()
 
   } catch (error) {
-    console.error('❌ Server startup failed:', error)
+    appLogger.error('Server startup failed', error as any)
     process.exit(1)
   }
 }

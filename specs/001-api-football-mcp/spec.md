@@ -80,7 +80,7 @@ As an AI agent or automated system, I need to access comprehensive football data
 - **FR-004**: System MUST return team information including squad lists, venue details, and club statistics
 - **FR-005**: System MUST support querying by multiple parameters (date ranges, team names/IDs, player names/IDs, league IDs)
 - **FR-006**: System MUST provide match event data including match status, current minute (for in play matches) goals, cards, substitutions, and assists,
-- **FR-007**: System MUST handle data queries for multiple seasons including all teams that have played in the English premier league from August 1992 to present day
+- **FR-007**: System MUST handle data queries for multiple seasons including all teams that have played in the English Premier League across available API coverage (note: API‑Football v3 EPL historical data is typically available from 2002 onwards; pre‑2002 may be incomplete or unavailable)
 - **FR-008**: System MUST return data in a structured, consistent format that agents can easily parse
 - **FR-009**: System MUST provide clear error messages when requested data is unavailable or invalid
 - **FR-010**: System MUST respect rate limits which are returned in request response headers

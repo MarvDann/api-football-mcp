@@ -48,6 +48,7 @@ export interface ApiEndpointParams {
   to?: string
   date?: string
   status?: string
+  round?: string
   search?: string
   limit?: number
   page?: number

@@ -1,4 +1,6 @@
 import pino from 'pino'
+import fs from 'node:fs'
+import path from 'node:path'
 
 export interface Logger {
   debug(message: string, ...args: unknown[]): void
@@ -31,13 +33,50 @@ export function createLogger (config: LoggerConfig = {}): Logger {
   }
 
   if (pretty) {
-    pinoConfig.transport = {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'hostname,pid'
+    try {
+      // Only enable pretty transport if available to avoid runtime errors
+      // in environments where pino-pretty is not installed.
+      // eslint-disable-next-line n/no-missing-require
+      require.resolve('pino-pretty')
+      pinoConfig.transport = {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          ignore: 'hostname,pid'
+        }
       }
+    } catch {
+      // Fallback silently to non-pretty output
+    }
+  }
+
+  // Production file logging with rotation
+  if (!pretty && process.env.LOG_TO_FILE === 'true') {
+    const logDir = process.env.LOG_DIR || path.join(process.cwd(), 'logs')
+    const rotateInterval = process.env.LOG_ROTATE_INTERVAL || '1d' // daily
+    const rotateSize = process.env.LOG_ROTATE_SIZE || '10M'
+    try {
+      fs.mkdirSync(logDir, { recursive: true })
+    } catch {}
+
+    try {
+      // Try rotating file transport if available
+      // eslint-disable-next-line n/no-missing-require
+      require.resolve('pino-rotating-file')
+      pinoConfig.transport = {
+        target: 'pino-rotating-file',
+        options: {
+          path: path.join(logDir, 'server.log'),
+          interval: rotateInterval,
+          size: rotateSize
+        }
+      } as any
+    } catch {
+      // Fallback to simple file per-day
+      const date = new Date().toISOString().slice(0, 10)
+      const destination = path.join(logDir, `server-${date}.log`)
+      return pino(pinoConfig, pino.destination({ dest: destination, sync: false }))
     }
   }
 

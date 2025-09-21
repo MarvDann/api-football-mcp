@@ -1,110 +1,106 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { GetFixturesTool } from '../../src/lib/tools/get-fixtures'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import { sampleFixturesApiResponse } from '../helpers/sample-responses'
 
-describe('get_fixtures contract test', () => {
-  it('should validate input schema for get_fixtures tool', () => {
-    // Valid inputs with various parameter combinations
-    const validInputs = [
-      {}, // No parameters
-      { season: 2024 },
-      { teamId: 50 },
-      { from: '2024-01-01', to: '2024-01-31' },
-      { status: 'FT' },
-      { limit: 20 },
-      { season: 2024, teamId: 50, status: 'LIVE', limit: 10 },
-      { from: '2024-01-01' }, // Only from date
-      { to: '2024-01-31' } // Only to date
-    ]
+describe('Contract: get_fixtures tool', () => {
+  let cache: LRUCache
+  let getFixturesTool: GetFixturesTool
+  let mockApiClient: { getFixtures: ReturnType<typeof vi.fn> }
 
-    const invalidInputs = [
-      { season: 'invalid' }, // Wrong type
-      { teamId: 'not-number' }, // Wrong type
-      { from: '2024/01/01' }, // Wrong date format
-      { to: 'invalid-date' }, // Invalid date
-      { status: 'INVALID' }, // Not in enum
-      { limit: 150 }, // Above maximum
-      { limit: -1 }, // Negative number
-      { from: '2024-01-31', to: '2024-01-01' } // End before start
-    ]
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_fixtures tool not implemented')
-    }).toThrow('get_fixtures tool not implemented')
-  })
-
-  it('should validate output schema for get_fixtures tool', () => {
-    const expectedOutput = {
-      fixtures: [
-        {
-          id: 12345,
-          referee: 'Michael Oliver',
-          timezone: 'UTC',
-          date: '2024-01-14T15:00:00+00:00',
-          timestamp: 1705244400,
-          venue: {
-            id: 556,
-            name: 'Old Trafford',
-            city: 'Manchester'
-          },
-          status: {
-            long: 'Match Finished',
-            short: 'FT',
-            elapsed: 90
-          },
-          teams: {
-            home: {
-              id: 33,
-              name: 'Manchester United',
-              logo: 'https://example.com/mu.png',
-              winner: true
-            },
-            away: {
-              id: 50,
-              name: 'Manchester City',
-              logo: 'https://example.com/mc.png',
-              winner: false
-            }
-          },
-          goals: {
-            home: 2,
-            away: 1
-          }
-        }
-      ],
-      total: 1
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 1000 })
+    mockApiClient = {
+      getFixtures: vi.fn().mockResolvedValue(sampleFixturesApiResponse)
     }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_fixtures tool not implemented')
-    }).toThrow('get_fixtures tool not implemented')
+    getFixturesTool = new GetFixturesTool(mockApiClient as any, cache)
   })
 
-  it('should validate status enum values', () => {
-    const validStatuses = ['NS', '1H', 'HT', '2H', 'FT', 'LIVE']
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_fixtures tool not implemented')
-    }).toThrow('get_fixtures tool not implemented')
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
   })
 
-  it('should validate limit constraints', () => {
-    // Test limit default value and maximum
-    // Default: 50, Maximum: 100
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('get_fixtures')
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_fixtures tool not implemented')
-    }).toThrow('get_fixtures tool not implemented')
+    expect(getFixturesTool.name).toBe(contract.name)
+    expect(getFixturesTool.description).toBe(contract.description)
+    expect(getFixturesTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('should validate date format requirements', () => {
-    // Date format should be YYYY-MM-DD
+  it('returns fixtures that satisfy the documented schema', async () => {
+    const result = await getFixturesTool.call({ params: { season: 2024, teamId: 33 } } as any)
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_fixtures tool not implemented')
-    }).toThrow('get_fixtures tool not implemented')
+    expect(result.isError).toBeUndefined()
+    expect(result.content).toHaveLength(1)
+
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload).toHaveProperty('fixtures')
+    expect(Array.isArray(payload.fixtures)).toBe(true)
+    expect(payload.total).toBe(payload.fixtures.length)
+    expect(payload.fixtures.length).toBeGreaterThan(0)
+
+    const fixture = payload.fixtures[0]
+    expect(fixture).toMatchObject({
+      id: expect.any(Number),
+      referee: expect.any(String),
+      timezone: expect.any(String),
+      date: expect.any(String),
+      timestamp: expect.any(Number),
+      league: {
+        id: expect.any(Number),
+        name: expect.any(String),
+        country: expect.any(String),
+        season: expect.any(Number)
+      },
+      teams: {
+        home: {
+          id: expect.any(Number),
+          name: expect.any(String),
+          logo: expect.any(String)
+        },
+        away: {
+          id: expect.any(Number),
+          name: expect.any(String),
+          logo: expect.any(String)
+        }
+      },
+      goals: {
+        home: expect.any(Number),
+        away: expect.any(Number)
+      },
+      score: {
+        halftime: {
+          home: expect.any(Number),
+          away: expect.any(Number)
+        },
+        fulltime: {
+          home: expect.any(Number),
+          away: expect.any(Number)
+        }
+      }
+    })
+
+    expect(mockApiClient.getFixtures).toHaveBeenCalledWith({
+      season: 2024,
+      team: 33
+    })
+  })
+
+  it('rejects invalid date ranges before hitting the API', async () => {
+    const result = await getFixturesTool.call({
+      params: {
+        from: '2025-01-31',
+        to: '2025-01-01'
+      }
+    } as any)
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain('from" date must be before or equal to')
+    expect(mockApiClient.getFixtures).not.toHaveBeenCalled()
   })
 })

@@ -1,127 +1,66 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { GetLiveMatchesTool } from '../../src/lib/tools/get-live-matches'
+import { LRUCache } from '../../src/lib/cache/lru-cache'
+import { getToolContract } from '../helpers/contract_spec'
+import { sampleLiveFixturesResponse } from '../helpers/sample-responses'
 
-describe('get_live_matches contract test', () => {
-  it('should validate input schema for get_live_matches tool', () => {
-    // Valid inputs - no parameters required
-    const validInputs = [
-      {} // Empty object - no parameters needed
-    ]
+describe('Contract: get_live_matches tool', () => {
+  let cache: LRUCache
+  let getLiveMatchesTool: GetLiveMatchesTool
+  let mockApiClient: { getLiveFixtures: ReturnType<typeof vi.fn> }
 
-    const invalidInputs = [
-      { unexpectedParam: 'value' } // No parameters expected
-    ]
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 10, defaultTtl: 100 })
+    mockApiClient = {
+      getLiveFixtures: vi.fn().mockResolvedValue(sampleLiveFixturesResponse)
+    }
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
+    getLiveMatchesTool = new GetLiveMatchesTool(mockApiClient as any, cache)
   })
 
-  it('should validate output schema for get_live_matches tool', () => {
-    const expectedOutput = {
-      fixtures: [
-        {
-          id: 12345,
-          referee: 'Michael Oliver',
-          timezone: 'UTC',
-          date: '2024-01-14T15:00:00+00:00',
-          timestamp: 1705244400,
-          venue: {
-            id: 556,
-            name: 'Old Trafford',
-            city: 'Manchester'
-          },
-          status: {
-            long: 'First Half',
-            short: '1H',
-            elapsed: 25
-          },
-          teams: {
-            home: {
-              id: 33,
-              name: 'Manchester United',
-              logo: 'https://example.com/mu.png',
-              winner: null
-            },
-            away: {
-              id: 50,
-              name: 'Manchester City',
-              logo: 'https://example.com/mc.png',
-              winner: null
-            }
-          },
-          goals: {
-            home: 1,
-            away: 0
-          }
+  afterEach(() => {
+    cache.destroy()
+    vi.restoreAllMocks()
+  })
+
+  it('matches the documented contract metadata', () => {
+    const contract = getToolContract('get_live_matches')
+
+    expect(getLiveMatchesTool.name).toBe(contract.name)
+    expect(getLiveMatchesTool.description).toBe(contract.description)
+    expect(getLiveMatchesTool.inputSchema).toEqual(contract.inputSchema)
+  })
+
+  it('returns live fixtures that satisfy the documented schema', async () => {
+    const result = await getLiveMatchesTool.call({ params: {} } as any)
+
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(Array.isArray(payload.fixtures)).toBe(true)
+    expect(payload.total).toBe(payload.fixtures.length)
+    expect(payload.fixtures.length).toBeGreaterThan(0)
+
+    const fixture = payload.fixtures[0]
+    expect(fixture.status.short).toBe('2H')
+    expect(fixture).toMatchObject({
+      id: expect.any(Number),
+      league: {
+        id: 39,
+        name: expect.any(String)
+      },
+      teams: {
+        home: {
+          id: expect.any(Number),
+          name: expect.any(String)
+        },
+        away: {
+          id: expect.any(Number),
+          name: expect.any(String)
         }
-      ],
-      total: 1
-    }
+      }
+    })
 
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
-  })
-
-  it('should handle no live matches scenario', () => {
-    // Test when no matches are currently live
-    const expectedEmptyOutput = {
-      fixtures: [],
-      total: 0
-    }
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
-  })
-
-  it('should validate live match status values', () => {
-    // Test that returned matches have appropriate live status
-    // Valid live statuses: 1H, HT, 2H, LIVE
-    const validLiveStatuses = ['1H', 'HT', '2H', 'LIVE']
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
-  })
-
-  it('should validate fixture structure for live matches', () => {
-    // Test that live fixtures have all required fields
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
-  })
-
-  it('should validate elapsed time for live matches', () => {
-    // Test that elapsed time is properly set for live matches
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
-  })
-
-  it('should validate total count accuracy', () => {
-    // Test that total field matches actual fixtures array length
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
-  })
-
-  it('should validate Premier League only filter', () => {
-    // Test that only Premier League matches are returned
-
-    // This will fail - tool not implemented yet
-    expect(() => {
-      throw new Error('get_live_matches tool not implemented')
-    }).toThrow('get_live_matches tool not implemented')
+    expect(mockApiClient.getLiveFixtures).toHaveBeenCalled()
   })
 })

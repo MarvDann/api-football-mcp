@@ -62,7 +62,7 @@ export class SearchTeamsTool implements Tool {
 
       if (params.query) {
         // Search for specific teams by name
-        apiResponse = await this.apiClient.searchTeams(params.query, params.season)
+        apiResponse = await this.apiClient.searchTeams(params.query)
       } else {
         // Get all teams for the season (or current season)
         apiResponse = await this.apiClient.getTeams(params.season)
@@ -83,6 +83,7 @@ export class SearchTeamsTool implements Tool {
         id: teamData.team.id,
         name: teamData.team.name,
         code: teamData.team.code || null,
+        country: teamData.team.country,
         logo: teamData.team.logo,
         founded: teamData.team.founded,
         venue: teamData.venue ? {
@@ -112,7 +113,8 @@ export class SearchTeamsTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in search_teams:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in search_teams', error as any)
 
       return {
         content: [{

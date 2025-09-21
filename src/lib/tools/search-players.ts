@@ -118,27 +118,39 @@ export class SearchPlayersTool implements Tool {
         }
       }
 
-      // Parse player data
+      // Parse player data and map to contract schema
       let players = apiResponse.response.map((playerData: any) => {
-        const player = parsePlayer(playerData.player)
+        const parsed = parsePlayer(playerData.player)
 
-        // Add position and number if available from statistics
+        let position: string | undefined
+        let number: number | null | undefined
         if (playerData.statistics && playerData.statistics.length > 0) {
           const premierLeagueStats = playerData.statistics.find((stat: any) =>
-            stat.league.id === 39 &&
-            (!params.season || stat.league.season === params.season)
+            stat.league.id === 39 && (!params.season || stat.league.season === params.season)
           )
 
           if (premierLeagueStats) {
-            return {
-              ...player,
-              position: premierLeagueStats.games.position || 'Unknown',
-              number: premierLeagueStats.games.number || null
-            }
+            position = premierLeagueStats.games.position || undefined
+            number = premierLeagueStats.games.number ?? null
           }
         }
 
-        return player
+        return {
+          id: parsed.id,
+          name: parsed.name,
+          firstname: parsed.firstname,
+          lastname: parsed.lastname,
+          age: parsed.age,
+          birthDate: parsed.birth.date,
+          birthPlace: parsed.birth.place,
+          birthCountry: parsed.birth.country,
+          nationality: parsed.nationality,
+          height: parsed.height,
+          weight: parsed.weight,
+          photo: parsed.photo,
+          ...(position ? { position } : {}),
+          ...(number !== undefined ? { number } : {})
+        }
       })
 
       // Apply position filter if specified
@@ -166,7 +178,8 @@ export class SearchPlayersTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in search_players:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in search_players', error as any)
 
       return {
         content: [{

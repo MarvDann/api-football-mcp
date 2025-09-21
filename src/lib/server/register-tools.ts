@@ -5,6 +5,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import { ToolRegistry } from '../tools/registry'
 import { handleError } from './errors'
+import { logger as appLogger } from '../logger/logger'
 
 export function registerToolHandlers (server: Server, toolRegistry: ToolRegistry): void {
   // Handle list_tools requests
@@ -20,7 +21,7 @@ export function registerToolHandlers (server: Server, toolRegistry: ToolRegistry
         }))
       }
     } catch (error) {
-      console.error('Error listing tools:', error)
+      appLogger.error('Error listing tools', error as any)
       throw handleError(error)
     }
   })
@@ -35,15 +36,15 @@ export function registerToolHandlers (server: Server, toolRegistry: ToolRegistry
         throw handleError(new Error(`Tool not found: ${name}`))
       }
 
-      console.log(`Calling tool: ${name}`, JSON.stringify(request.params, null, 2))
+      appLogger.info(`Calling tool: ${name}`)
 
       const result = await (tool as any).call(request)
 
-      console.log(`Tool ${name} result:`, JSON.stringify(result, null, 2))
+      appLogger.info(`Tool ${name} result`)
 
       return result
     } catch (error) {
-      console.error(`Error calling tool ${request.params.name}:`, error)
+      appLogger.error(`Error calling tool ${request.params.name}`, error as any)
       throw handleError(error)
     }
   })
@@ -53,10 +54,7 @@ export function logToolRegistration (toolRegistry: ToolRegistry): void {
   const toolNames = toolRegistry.getToolNames()
   const toolCount = toolRegistry.getToolCount()
 
-  console.log(`🔧 Registered ${toolCount} MCP tools:`)
-  toolNames.forEach(name => {
-    console.log(`   • ${name}`)
-  })
+  appLogger.info(`Registered ${toolCount} MCP tools: ${toolNames.join(', ')}`)
 }
 
 // Health check utility

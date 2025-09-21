@@ -123,8 +123,38 @@ export class GetPlayerTool implements Tool {
         }
       }
 
-      // Parse player data
-      const player = parsePlayer(playerData.player)
+      // Parse and map player data to contract shape
+      const parsed = parsePlayer(playerData.player)
+
+      // Determine position/number from statistics if available
+      let position: string | undefined
+      let number: number | null | undefined
+      if (playerData.statistics && playerData.statistics.length > 0) {
+        const premierLeagueStats = playerData.statistics.find((stat: any) =>
+          stat.league.id === 39 && (!params.season || stat.league.season === params.season)
+        )
+        if (premierLeagueStats) {
+          position = premierLeagueStats.games.position || undefined
+          number = premierLeagueStats.games.number ?? null
+        }
+      }
+
+      const player = {
+        id: parsed.id,
+        name: parsed.name,
+        firstname: parsed.firstname,
+        lastname: parsed.lastname,
+        age: parsed.age,
+        birthDate: parsed.birth.date,
+        birthPlace: parsed.birth.place,
+        birthCountry: parsed.birth.country,
+        nationality: parsed.nationality,
+        height: parsed.height,
+        weight: parsed.weight,
+        photo: parsed.photo,
+        ...(position ? { position } : {}),
+        ...(number !== undefined ? { number } : {})
+      }
 
       const result: GetPlayerResult = { player }
 
@@ -168,7 +198,8 @@ export class GetPlayerTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in get_player:', error)
+      const { logger } = await import('../logger/logger')
+      logger.error('Error in get_player', error as any)
 
       return {
         content: [{
