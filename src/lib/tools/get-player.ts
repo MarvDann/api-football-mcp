@@ -6,6 +6,7 @@ import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
+import { getToolArguments } from './params'
 
 export interface GetPlayerParams {
   playerId?: number
@@ -38,11 +39,7 @@ export class GetPlayerTool implements Tool {
         type: 'number',
         description: 'Season year for statistics'
       }
-    },
-    anyOf: [
-      { required: ['playerId'] },
-      { required: ['name'] }
-    ]
+    }
   } as const
 
   constructor (
@@ -52,7 +49,7 @@ export class GetPlayerTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = request.params as GetPlayerParams || {}
+      const params = getToolArguments<GetPlayerParams>(request)
 
       // Validate that either playerId or name is provided
       if (!params.playerId && !params.name) {

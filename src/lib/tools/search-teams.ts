@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { logger } from '../logger/logger'
+import { getToolArguments } from './params'
 
 export interface SearchTeamsParams {
   query?: string
@@ -41,7 +42,7 @@ export class SearchTeamsTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = request.params as SearchTeamsParams || {}
+      const params = getToolArguments<SearchTeamsParams>(request)
 
       // Generate cache key
       const cacheKey = params.query

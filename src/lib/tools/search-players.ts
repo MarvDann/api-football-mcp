@@ -5,6 +5,7 @@ import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
 import { logger } from '../logger/logger'
+import { getToolArguments } from './params'
 import { createApiParams } from '../utils/object-utils'
 
 export interface SearchPlayersParams {
@@ -54,7 +55,7 @@ export class SearchPlayersTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = request.params as SearchPlayersParams || {}
+      const params = getToolArguments<SearchPlayersParams>(request)
 
       // Generate cache key
       const cacheKey = params.query

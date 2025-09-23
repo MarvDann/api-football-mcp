@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
+import { getToolArguments } from './params'
 
 export interface GetSquadParams {
   teamId: number
@@ -31,7 +32,7 @@ export class GetSquadTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = (request.params || {}) as Partial<GetSquadParams>
+      const params = getToolArguments<Partial<GetSquadParams>>(request)
 
       if (!params.teamId || !params.season) {
         return {

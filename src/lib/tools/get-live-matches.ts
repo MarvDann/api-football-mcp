@@ -26,7 +26,7 @@ export class GetLiveMatchesTool implements Tool {
     private cache: LRUCache
   ) {}
 
-  async call (request: CallToolRequest): Promise<CallToolResult> {
+  async call (_request: CallToolRequest): Promise<CallToolResult> {
     try {
       // Generate cache key
       const cacheKey = CacheKeys.liveFixtures()

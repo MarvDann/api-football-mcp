@@ -4,6 +4,7 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseMatchEvent, parseFixture } from '../api-client/parser'
+import { getToolArguments } from './params'
 
 export interface GetMatchEventsParams {
   fixtureId: number
@@ -37,7 +38,7 @@ export class GetMatchEventsTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = (request.params && typeof request.params === 'object' ? request.params : {}) as GetMatchEventsParams
+      const params = getToolArguments<GetMatchEventsParams>(request)
 
       if (!params.fixtureId) {
         return {

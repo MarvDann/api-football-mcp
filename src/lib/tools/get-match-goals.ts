@@ -5,6 +5,7 @@ import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseMatchEvent, parseFixture } from '../api-client/parser'
 import { logger } from '../logger/logger'
+import { getToolArguments } from './params'
 
 export interface GetMatchGoalsParams {
   fixtureId: number
@@ -33,7 +34,7 @@ export class GetMatchGoalsTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = (request.params && typeof request.params === 'object' ? request.params : {}) as GetMatchGoalsParams
+      const params = getToolArguments<GetMatchGoalsParams>(request)
 
       if (!params.fixtureId || typeof params.fixtureId !== 'number' || params.fixtureId <= 0) {
         return { content: [{ type: 'text', text: 'Error: fixtureId must be a positive number' }], isError: true }

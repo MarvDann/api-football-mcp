@@ -7,6 +7,7 @@ import { parseFixture } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
 import { FixtureAPI } from '../../types/api-football'
+import { getToolArguments } from './params'
 
 export interface GetFixturesParams {
   season?: number
@@ -68,7 +69,7 @@ export class GetFixturesTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = (request.params && typeof request.params === 'object' ? request.params : {}) as GetFixturesParams
+      const params = getToolArguments<GetFixturesParams>(request)
 
       // Validate date formats
       if (params.from && !this.isValidDate(params.from)) {

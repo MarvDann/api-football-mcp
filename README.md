@@ -1,15 +1,15 @@
-# API-Football MCP Server
+# API‑Football MCP Server
 
-A Model Context Protocol (MCP) server providing football data via the API-Sports API-Football service.
+A Model Context Protocol (MCP) server that provides Premier League data via API‑Sports’ API‑Football v3. Written in TypeScript with strict type checking, resilient error handling, and sensible caching for agent workflows.
 
 ## Features
 
-- **Historical Coverage**: Premier League historical data (typically 2002–present per API‑Football v3 coverage)
+- **Historical Coverage**: Premier League historical data (commonly 2002–present for many endpoints; some tools support 1992+ when data is available)
 - **Real-time Data**: Live match events, current standings, and fixture information
 - **Intelligent Caching**: LRU cache with TTL for optimal performance
-- **Rate Limiting**: Built-in rate limit handling with exponential backoff
+- **Rate Limiting**: Built-in rate‑limit tracking and exponential backoff
 - **MCP Integration**: Native Model Context Protocol support for LLM integration
-- **TypeScript**: Full TypeScript support with strict type checking
+- **TypeScript**: Strict TypeScript (noUncheckedIndexedAccess, exactOptionalPropertyTypes)
 
 ## MCP Tools
 
@@ -20,6 +20,7 @@ A Model Context Protocol (MCP) server providing football data via the API-Sports
 | `get_team` | Get team information and optional season squad | `teamId?` or `name?`, `season?` |
 | `get_player` | Get player profile and statistics | `playerId?` or `name?`, `season?` |
 | `get_match_goals` | Get goal events for a match | `fixtureId` (required) |
+| `get_match_events` | Get all events for a match | `fixtureId` (required) |
 | `get_squad` | Get a team's squad for a season | `teamId` (required), `season` (required) |
 | `search_teams` | Search for teams by name | `query?`, `season?` |
 | `search_players` | Search for players | `query` (required), `team?`, `season?`, `page?` |
@@ -38,7 +39,7 @@ A Model Context Protocol (MCP) server providing football data via the API-Sports
 
 - Node.js 22+
 - pnpm package manager
-- API-Football API key from [API-Sports](https://api-sports.io/)
+- API‑Football API key from [API‑Sports](https://api-sports.io/)
 
 ### Setup
 
@@ -177,7 +178,7 @@ Below are example configurations for popular MCP-capable agents. All examples la
 }
 ```
 
-Tools available to agents include: get_standings, get_fixtures, get_team, get_player, get_squad, get_match_goals, get_live_matches, search_teams, search_players, get_rate_limit.
+Tools available to agents include: get_standings, get_fixtures, get_team, get_player, get_squad, get_match_goals, get_match_events, get_live_matches, search_teams, search_players, get_rate_limit.
 
 ### CLI Tools
 
@@ -248,6 +249,10 @@ node dist/cli/cache.js get "standings:2023"
 | `NODE_ENV` | Environment mode | `development` |
 | `LOG_LEVEL` | Logging level (debug, info, warn, error) | `info` |
 | `LOG_FORMAT` | Log format (json, text) | `json` |
+| `LOG_TO_FILE` | Enable file logging (pino) | `false` |
+| `LOG_DIR` | Directory for logs when `LOG_TO_FILE=true` | `./logs` |
+| `LOG_ROTATE_INTERVAL` | Rotation interval (when rotating transport available) | `1d` |
+| `LOG_ROTATE_SIZE` | Rotation size threshold (when available) | `10M` |
 | `CACHE_MAX_SIZE` | Maximum cache entries | `1000` |
 | `CACHE_TTL` | Cache TTL in milliseconds | `300000` (5 minutes) |
 | `API_TIMEOUT` | API request timeout in milliseconds | `15000` (15 seconds) |
@@ -270,7 +275,8 @@ The server uses different cache TTL values based on data type:
 # Development
 pnpm run dev          # Watch mode with hot reload
 pnpm run build        # Build TypeScript
-pnpm run lint         # Run ESLint
+pnpm run lint:check   # Run ESLint (no fix)
+pnpm run lint         # Run ESLint with --fix
 pnpm run test         # Run all tests
 
 # Offline test suite (no real API calls)
@@ -286,7 +292,7 @@ pnpm run test:performance
 pnpm run test:integration
 
 # Type checking
-npx tsc --noEmit      # Type check without compilation
+pnpm run check-types  # Type check without emitting
 ```
 
 ### Project Structure
@@ -304,10 +310,11 @@ src/
 │   ├── api-client/   # API-Football HTTP client
 │   ├── cache/        # LRU cache with TTL
 │   ├── tools/        # MCP tool implementations
-│   └── server/       # Server utilities
+│   └── server/       # Structured logger + helpers
 ├── services/         # Business logic layer
 ├── cli/              # Command-line interfaces
-└── config.ts         # Configuration management
+├── config.ts         # Configuration management
+└── server.ts         # MCP server entry (built to dist/server.js)
 
 tests/
 ├── unit/             # Unit tests
@@ -331,12 +338,16 @@ pnpm run test:contract
 pnpm run test:performance
 
 # Run tests in watch mode
-pnpm run test:watch
+# Offline suite (does not require API key)
+pnpm run test:offline
+
+# Online tests (require API key, respect vendor rate limits)
+pnpm run test:online
 ```
 
 ### Code Quality
 
-- **ESLint**: Standard style with no semicolons, 2-space indentation
+- **ESLint**: Standard style (no semicolons, 2 spaces). In tests, unused vars and non‑null assertions are relaxed. In src, unused args prefixed with `_` are allowed.
 - **TypeScript**: Strict mode enabled
 - **Vitest**: Testing framework with coverage
 - **Automatic formatting**: ESLint autofix on save in VS Code
@@ -493,6 +504,16 @@ pnpm start
 4. Run full test suite: `pnpm test`
 5. Check linting: `pnpm run lint`
 6. Submit pull request with description
+
+## Constitution & Governance
+
+This project follows an internal development constitution for MCP servers (.specify/memory/constitution.md):
+- Protocol: JSON‑RPC 2.0 over stdio via @modelcontextprotocol/sdk
+- TypeScript‑first, strict type safety across tools and client integration
+- Clear error formatting, retry with exponential backoff, and rate‑limit awareness
+- Documented tools, validated inputs, sanitized outputs, and caching strategy
+
+Please keep changes aligned with these principles.
 
 ## License
 

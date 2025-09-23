@@ -117,11 +117,7 @@
             "type": "number",
             "description": "Season year for squad information"
           }
-        },
-        "anyOf": [
-          {"required": ["teamId"]},
-          {"required": ["name"]}
-        ]
+        }
       },
       "outputSchema": {
         "type": "object",
@@ -156,11 +152,7 @@
             "type": "number",
             "description": "Season year for statistics"
           }
-        },
-        "anyOf": [
-          {"required": ["playerId"]},
-          {"required": ["name"]}
-        ]
+        }
       },
       "outputSchema": {
         "type": "object",

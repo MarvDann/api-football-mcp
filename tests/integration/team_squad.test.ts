@@ -234,9 +234,9 @@ describe('Integration: Get team squad information', () => {
 
     const tool = new GetTeamTool(apiClient, cache)
 
-    // Verify input schema supports both teamId and name
+    // Verify input schema exposes properties (host may not allow root anyOf)
     expect(tool.inputSchema).toBeDefined()
-    expect(tool.inputSchema.anyOf || tool.inputSchema.properties).toBeDefined()
+    expect((tool.inputSchema as any).properties).toBeDefined()
 
     // Test that handler accepts both parameter types
     expect(typeof tool.call).toBe('function')

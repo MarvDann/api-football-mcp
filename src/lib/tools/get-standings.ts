@@ -7,6 +7,7 @@ import { parseStanding } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { SEASON_CONFIG } from '../../models/season'
 import { GetStandingsResult } from '../../types/tool-results'
+import { getToolArguments } from './params'
 
 export interface GetStandingsParams {
   season?: number
@@ -38,7 +39,7 @@ export class GetStandingsTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = request.params as GetStandingsParams || {}
+      const params = getToolArguments<GetStandingsParams>(request)
       const season = params.season || new Date().getFullYear()
 
       // Validate season range

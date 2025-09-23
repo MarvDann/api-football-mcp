@@ -5,6 +5,7 @@ import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
 import { logger } from '../logger/logger'
+import { getToolArguments } from './params'
 
 export interface GetTeamParams {
   teamId?: number
@@ -37,11 +38,7 @@ export class GetTeamTool implements Tool {
         type: 'number',
         description: 'Season year for squad information'
       }
-    },
-    anyOf: [
-      { required: ['teamId'] },
-      { required: ['name'] }
-    ]
+    }
   } as const
 
   constructor (
@@ -51,7 +48,7 @@ export class GetTeamTool implements Tool {
 
   async call (request: CallToolRequest): Promise<CallToolResult> {
     try {
-      const params = request.params as GetTeamParams || {}
+      const params = getToolArguments<GetTeamParams>(request)
 
       // Validate that either teamId or name is provided
       if (!params.teamId && !params.name) {
