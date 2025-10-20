@@ -1,5 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { DataService } from '../../services/data-service'
+import { APIFootballClient } from '../api-client/client'
+import { LRUCache } from '../cache/lru-cache'
 import { logger } from '../server/logger'
 
 import { GetStandingsTool } from './get-standings'
@@ -28,8 +30,9 @@ export function createTools (config: DataServiceToolConfig): Tool[] {
 
   // For now, we'll create tools with existing dependencies
   // TODO: Refactor individual tools to accept DataService instead of APIClient + Cache
-  const apiClient = (dataService as any).apiClient
-  const cache = (dataService as any).cache
+  interface Deps { apiClient: APIFootballClient; cache: LRUCache }
+  const apiClient = (dataService as unknown as Deps).apiClient
+  const cache = (dataService as unknown as Deps).cache
 
   const tools = [
     new GetStandingsTool(apiClient, cache),
@@ -108,7 +111,7 @@ export class DataServiceToolRegistry {
   // Data service specific methods
   async healthCheck (): Promise<{
     toolsRegistered: number
-    dataService: any
+    dataService: unknown
   }> {
     const dsHealth = await this.dataService.healthCheck()
 
@@ -144,7 +147,7 @@ export class DataServiceToolRegistry {
   async executeToolWithTracking<T>(
     toolName: string,
     operation: () => Promise<T>,
-    params?: any
+    params?: unknown
   ): Promise<T> {
     if (this.enableLogging) {
       logger.toolCall(toolName, params)

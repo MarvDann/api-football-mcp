@@ -20,6 +20,11 @@ export interface GetMatchGoalsResult {
   events: MatchEvent[]
 }
 
+export interface GetMatchEventsResult {
+  fixture: Fixture | { id: number }
+  events: MatchEvent[]
+}
+
 export interface GetStandingsResult {
   standings: Standing[]
   lastUpdated: string
@@ -63,6 +68,20 @@ export interface PlayerProfile {
   number?: number | null
 }
 
+export interface PlayerStatisticsSummary {
+  playerId: number
+  teamId: number
+  season: number
+  appearances: number
+  lineups: number
+  minutes: number
+  goals: number
+  assists: number
+  yellowCards: number
+  redCards: number
+  rating: number | null
+}
+
 export interface GetTeamResult {
   team: ToolTeam
   squad?: PlayerProfile[]
@@ -78,3 +97,12 @@ export interface SearchPlayersResult {
   total: number
 }
 
+export interface GetPlayerResult {
+  player: PlayerProfile
+  statistics?: PlayerStatisticsSummary
+}
+
+export interface GetSquadResult {
+  squad: PlayerProfile[]
+  total: number
+}

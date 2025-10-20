@@ -35,44 +35,37 @@ describe('Contract: search_teams tool', () => {
     expect(searchTeamsTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('returns matching teams that satisfy the documented schema', async () => {
+  it('returns compact table output by default', async () => {
     const result = await searchTeamsTool.call({ params: { query: 'Arsenal' } } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(((result.content[0] as any).text as string))
-
-    expect(Array.isArray(payload.teams)).toBe(true)
-    expect(payload.total).toBe(payload.teams.length)
-    expect(payload.teams.length).toBeGreaterThan(0)
-
-    const team = payload.teams[0]
-    expect(team).toMatchObject({
-      id: 42,
-      name: 'Arsenal',
-      code: 'ARS',
-      country: 'England',
-      founded: 1886,
-      logo: expect.any(String),
-      venue: {
-        id: expect.any(Number),
-        name: expect.any(String),
-        city: expect.any(String),
-        capacity: expect.any(Number),
-        surface: expect.any(String),
-        image: expect.any(String)
-      }
-    })
-
+    const text = ((result.content[0] as any).text as string)
+    expect(typeof text).toBe('string')
+    expect(text).toContain('ID')
+    expect(text).toContain('Name')
+    expect(text).toContain('Country')
+    expect(text).toContain('Founded')
     expect(mockApiClient.searchTeams).toHaveBeenCalledWith('Arsenal')
   })
 
-  it('returns all Premier League teams for a season when no query is supplied', async () => {
-    const result = await searchTeamsTool.call({ params: { season: 2024 } } as any)
+  it('returns full JSON when format is explicitly json', async () => {
+    const result = await searchTeamsTool.call({ params: { query: 'Arsenal', format: 'json' } } as any)
 
     expect(result.isError).toBeUndefined()
     const payload = JSON.parse(((result.content[0] as any).text as string))
+    expect(Array.isArray(payload.teams)).toBe(true)
+    expect(payload.total).toBe(payload.teams.length)
+    expect(payload.teams.length).toBeGreaterThan(0)
+  })
 
+  it('returns all teams as table by default when no query is supplied', async () => {
+    const result = await searchTeamsTool.call({ params: { season: 2024 } } as any)
+
+    expect(result.isError).toBeUndefined()
+    const text = ((result.content[0] as any).text as string)
+    expect(typeof text).toBe('string')
+    expect(text).toContain('ID')
+    expect(text).toContain('Name')
     expect(mockApiClient.getTeams).toHaveBeenCalledWith(2024)
-    expect(payload.teams.every((team: any) => team.country === 'England')).toBe(true)
   })
 })

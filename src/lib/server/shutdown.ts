@@ -211,7 +211,7 @@ export class GracefulShutdown {
       results.push(result)
 
       if (!result.success && this.config.logShutdownSteps) {
-        logger.warn(`Shutdown handler failed: ${handler.name}`, result.error)
+        logger.warn(`Shutdown handler failed: ${handler.name}`, result.error ? { error: result.error } : undefined)
       }
     }
 

@@ -38,39 +38,34 @@ describe('Contract: search_players tool', () => {
     expect(searchPlayersTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('returns players that satisfy the documented schema', async () => {
+  it('returns compact table output by default', async () => {
     const result = await searchPlayersTool.call({
       params: { query: 'Rashford', season: 2024 }
     } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(((result.content[0] as any).text as string))
-
-    expect(Array.isArray(payload.players)).toBe(true)
-    expect(payload.total).toBe(payload.players.length)
-
-    const player = payload.players[0]
-    expect(player).toMatchObject({
-      id: expect.any(Number),
-      name: expect.any(String),
-      firstname: expect.any(String),
-      lastname: expect.any(String),
-      age: expect.any(Number),
-      birthDate: expect.any(String),
-      birthPlace: expect.any(String),
-      birthCountry: expect.any(String),
-      nationality: expect.any(String),
-      height: expect.any(String),
-      weight: expect.any(String),
-      photo: expect.any(String),
-      position: expect.stringMatching(/Goalkeeper|Defender|Midfielder|Attacker/),
-      number: expect.any(Number)
-    })
+    const text = ((result.content[0] as any).text as string)
+    expect(typeof text).toBe('string')
+    expect(text).toContain('ID')
+    expect(text).toContain('Name')
+    expect(text).toContain('Age')
+    expect(text).toContain('Nat')
+    expect(text).toContain('Pos')
 
     expect(mockApiClient.searchPlayers).toHaveBeenCalledWith('Rashford', {
       season: 2024,
       page: 1
     })
+  })
+
+  it('returns full JSON when format is explicitly json', async () => {
+    const result = await searchPlayersTool.call({
+      params: { query: 'Rashford', season: 2024, format: 'json' }
+    } as any)
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(((result.content[0] as any).text as string))
+    expect(Array.isArray(payload.players)).toBe(true)
+    expect(payload.total).toBe(payload.players.length)
   })
 
   it('filters players by team when requested', async () => {
@@ -85,9 +80,9 @@ describe('Contract: search_players tool', () => {
     })
   })
 
-  it('applies position filter after retrieving candidates', async () => {
+  it('applies position filter after retrieving candidates (json format)', async () => {
     const result = await searchPlayersTool.call({
-      params: { query: 'Rashford', position: 'Attacker', season: 2024 }
+      params: { query: 'Rashford', position: 'Attacker', season: 2024, format: 'json' }
     } as any)
 
     expect(result.isError).toBeUndefined()

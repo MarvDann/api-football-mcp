@@ -1,4 +1,4 @@
-import { TeamInFixture, Venue } from './team'
+import { TeamInFixture } from './team'
 
 export interface Fixture {
   id: number

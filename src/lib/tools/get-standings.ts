@@ -81,8 +81,19 @@ export class GetStandingsTool implements Tool {
       }
 
       // Parse and format the response
-      const leagueStandings = apiResponse.response[0]!
-      const standings = leagueStandings.league.standings[0]!.map((item) => parseStanding(item))
+      const leagueStandings = apiResponse.response[0]
+      const standingsArray = leagueStandings?.league?.standings?.[0]
+      if (!standingsArray || standingsArray.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: `Error: No standings data found for season ${season}`
+          }],
+          isError: true
+        }
+      }
+
+      const standings = standingsArray.map((item) => parseStanding(item))
 
       const result: GetStandingsResult = {
         standings,

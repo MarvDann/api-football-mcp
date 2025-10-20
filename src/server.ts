@@ -72,12 +72,12 @@ class APIFootballMCPServer {
   private setupErrorHandling (): void {
     // Handle uncaught errors
     process.on('uncaughtException', (error) => {
-      appLogger.error('Uncaught exception', error as any)
+      appLogger.error({ error }, 'Uncaught exception')
       this.shutdown(1)
     })
 
-    process.on('unhandledRejection', (reason, promise) => {
-      appLogger.error('Unhandled rejection', new Error(String(reason)))
+    process.on('unhandledRejection', (reason, _promise) => {
+      appLogger.error({ reason: String(reason) }, 'Unhandled rejection')
       this.shutdown(1)
     })
 
@@ -113,7 +113,7 @@ class APIFootballMCPServer {
       appLogger.info('Health check', { health })
 
     } catch (error) {
-      appLogger.error('Failed to start server', error as any)
+      appLogger.error({ error }, 'Failed to start server')
       throw handleError(error)
     }
   }
@@ -135,7 +135,7 @@ class APIFootballMCPServer {
 
       appLogger.info('Shutdown complete')
     } catch (error) {
-      appLogger.error('Error during shutdown', error as any)
+      appLogger.error({ error }, 'Error during shutdown')
     }
 
     process.exit(exitCode)
@@ -176,7 +176,7 @@ async function main (): Promise<void> {
     await server.start()
 
   } catch (error) {
-    appLogger.error('Server startup failed', error as any)
+    appLogger.error({ error }, 'Server startup failed')
     process.exit(1)
   }
 }
@@ -184,7 +184,7 @@ async function main (): Promise<void> {
 // Run if this script is executed directly
 if ((process.argv[1]?.endsWith('server.ts')) || (process.argv[1]?.includes('dist') && process.argv[1]?.endsWith('server.js'))) {
   main().catch((error) => {
-    console.error('❌ Fatal error:', error)
+    appLogger.error({ error }, 'Fatal error')
     process.exit(1)
   })
 }

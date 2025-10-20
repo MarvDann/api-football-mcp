@@ -6,14 +6,14 @@
  * Creates an object with only defined properties (no undefined values)
  * This is needed for exactOptionalPropertyTypes compliance
  */
-export function createOptionalObject<T extends Record<string, any>> (
+export function createOptionalObject<T extends Record<string, unknown>> (
   obj: T
-): { [K in keyof T as T[K] extends undefined ? never : K]: T[K] } {
-  const result = {} as any
+): Partial<T> {
+  const result: Partial<T> = {}
 
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
-      result[key] = value
+      (result as Record<string, unknown>)[key] = value
     }
   }
 
@@ -23,8 +23,8 @@ export function createOptionalObject<T extends Record<string, any>> (
 /**
  * Creates API parameters object with only defined values
  */
-export function createApiParams<T extends Record<string, any>> (
+export function createApiParams<T extends Record<string, unknown>> (
   params: T
 ): Partial<T> {
-  return createOptionalObject(params) as unknown as Partial<T>
+  return createOptionalObject(params)
 }

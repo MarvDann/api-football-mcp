@@ -6,6 +6,9 @@ import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { getToolArguments } from './params'
+import { GetTeamResult, PlayerProfile, ToolTeam } from '../../types/tool-results'
+import { createOptionalObject } from '../utils/object-utils'
+import { TeamResponseItemAPI } from '../../types/api-football'
 
 export interface GetTeamParams {
   teamId?: number
@@ -13,10 +16,6 @@ export interface GetTeamParams {
   season?: number
 }
 
-export interface GetTeamResult {
-  team: any
-  squad?: any[]
-}
 
 export class GetTeamTool implements Tool {
   [key: string]: unknown
@@ -61,7 +60,7 @@ export class GetTeamTool implements Tool {
         }
       }
 
-      let team: any = null
+      let team: ToolTeam | null = null
       let teamId: number | undefined = params.teamId
 
       // If we have a team ID, fetch team directly
@@ -83,10 +82,25 @@ export class GetTeamTool implements Tool {
         if (apiResponse.response && apiResponse.response.length > 0) {
           const data = apiResponse.response[0]
           if (data) {
-            team = {
-              ...data.team,
-              venue: data.venue || null
-            }
+            team = createOptionalObject({
+              id: data.team.id,
+              name: data.team.name,
+              code: data.team.code ?? null,
+              country: data.team.country,
+              logo: data.team.logo,
+              ...(data.team.founded !== undefined ? { founded: data.team.founded } : {}),
+              venue: data.venue
+                ? createOptionalObject({
+                  id: data.venue.id,
+                  name: data.venue.name,
+                  city: data.venue.city,
+                  ...(data.venue.capacity !== undefined ? { capacity: data.venue.capacity } : {}),
+                  ...(data.venue.surface !== undefined ? { surface: data.venue.surface } : {}),
+                  ...(data.venue.image !== undefined ? { image: data.venue.image } : {}),
+                  ...(data.venue.address !== undefined ? { address: data.venue.address } : {})
+                })
+                : null
+            }) as ToolTeam
             teamId = data.team.id
           }
         }
@@ -97,16 +111,31 @@ export class GetTeamTool implements Tool {
         if (searchResponse.response && searchResponse.response.length > 0) {
           // Find exact match or closest match
           const queryName = params.name.toLowerCase()
-          const exactMatch = searchResponse.response.find((t: any) =>
+          const exactMatch = searchResponse.response.find((t: TeamResponseItemAPI) =>
             t.team.name.toLowerCase() === queryName
           )
 
           const chosen = exactMatch ?? searchResponse.response[0]
           if (chosen) {
-            team = {
-              ...chosen.team,
-              venue: chosen.venue || null
-            }
+            team = createOptionalObject({
+              id: chosen.team.id,
+              name: chosen.team.name,
+              code: chosen.team.code ?? null,
+              country: chosen.team.country,
+              logo: chosen.team.logo,
+              ...(chosen.team.founded !== undefined ? { founded: chosen.team.founded } : {}),
+              venue: chosen.venue
+                ? createOptionalObject({
+                  id: chosen.venue.id,
+                  name: chosen.venue.name,
+                  city: chosen.venue.city,
+                  ...(chosen.venue.capacity !== undefined ? { capacity: chosen.venue.capacity } : {}),
+                  ...(chosen.venue.surface !== undefined ? { surface: chosen.venue.surface } : {}),
+                  ...(chosen.venue.image !== undefined ? { image: chosen.venue.image } : {}),
+                  ...(chosen.venue.address !== undefined ? { address: chosen.venue.address } : {})
+                })
+                : null
+            }) as ToolTeam
             teamId = chosen.team.id
           }
         }
@@ -131,7 +160,7 @@ export class GetTeamTool implements Tool {
           const squadResponse = await this.apiClient.getPlayers({ team: teamId, season: params.season, page: 1 })
 
           if (squadResponse.response && squadResponse.response.length > 0) {
-            const squad = squadResponse.response.map((playerData: any) => {
+            const squad: PlayerProfile[] = squadResponse.response.map((playerData) => {
               const parsed = parsePlayer(playerData.player)
               return {
                 id: parsed.id,

@@ -6,6 +6,9 @@ import { getCachePolicy } from '../cache/policies'
 import { parseMatchEvent, parseFixture } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { getToolArguments } from './params'
+import { GetMatchGoalsResult } from '../../types/tool-results'
+import { MatchEventAPI, FixtureAPI } from '../../types/api-football'
+import type { Fixture } from '../../models/fixture'
 
 export interface GetMatchGoalsParams {
   fixtureId: number
@@ -50,17 +53,17 @@ export class GetMatchGoalsTool implements Tool {
       // Get fixture details by id only
       const fixturesResponse = await this.apiClient.getFixtures({ id: params.fixtureId })
 
-      let fixture: any = null
+      let fixture: Fixture | null = null
       if (fixturesResponse.response) {
-        const fixtureData = fixturesResponse.response.find((f: any) => f.fixture.id === params.fixtureId)
+        const fixtureData = fixturesResponse.response.find((f: FixtureAPI) => f.fixture.id === params.fixtureId)
         if (fixtureData) fixture = parseFixture(fixtureData)
       }
 
       const events = (eventsResponse.response || [])
-        .filter((eventData: any) => eventData?.type === 'Goal')
-        .map((eventData: any) => parseMatchEvent(eventData))
+        .filter((eventData: MatchEventAPI) => eventData?.type === 'Goal')
+        .map((eventData: MatchEventAPI) => parseMatchEvent(eventData))
 
-      const result = { fixture: fixture || { id: params.fixtureId }, events }
+      const result: GetMatchGoalsResult = { fixture: fixture || { id: params.fixtureId }, events }
       const isLive = fixture?.status?.short === 'LIVE' || fixture?.status?.short === '1H' || fixture?.status?.short === '2H'
       const policy = getCachePolicy(isLive ? 'live_fixtures' : 'match_events')
       this.cache.set(cacheKey, result, policy.ttl)

@@ -2,7 +2,7 @@
 
 import { APIFootballClient } from '../lib/api-client/client'
 import { createConsoleLogger } from '../lib/logger/logger'
-import { isEventArray, isPlayersArray, isFixtureArray, MatchEventAPI, PlayersResponseItemAPI, FixtureAPI } from '../types/guards'
+import { isEventArray, isPlayersArray, isFixtureArray, isTeamArray, isTeamItem, MatchEventAPI, PlayersResponseItemAPI, FixtureAPI, TeamResponseItemAPI } from '../types/guards'
 import { ValidationError, safeAsync } from '../lib/errors/errors'
 import { safeString } from '../lib/utils/string-utils'
 import { getNextArg, parseKeyValuePair, validateChoice } from '../lib/utils/cli-args'
@@ -13,7 +13,7 @@ function parseArgs (args: string[]): ApiClientOptions {
     apiKey: process.env.API_FOOTBALL_KEY ?? '',
     endpoint: '',
     params: {},
-    format: 'json',
+    format: 'table',
     verbose: false
   }
 
@@ -65,7 +65,7 @@ Usage:
 Options:
   --api-key <key>      API key (default: API_FOOTBALL_KEY env var)
   --endpoint <name>    Endpoint to call (required)
-  --format <format>    Output format: json|table (default: json)
+  --format <format>    Output format: json|table (default: table)
   --verbose           Show detailed output
   --help              Show this help
 
@@ -318,7 +318,28 @@ const main = safeAsync(async (): Promise<void> => {
         logger.error('Error: season must be a valid number (e.g., 2025)')
         process.exit(1)
       }
-      response = await client.getPlayers({ team: teamId, season, page: 1 })
+      const allPlayers: PlayersResponseItemAPI[] = []
+      let currentPage = 1
+      let totalPages = 1
+      let lastPaging: APIResponse['paging']
+
+      do {
+        const pageResponse = await client.getPlayers({ team: teamId, season, page: currentPage })
+        if (Array.isArray(pageResponse.response)) {
+          allPlayers.push(...pageResponse.response)
+        }
+        lastPaging = pageResponse.paging
+        totalPages = pageResponse.paging?.total ?? 1
+        if ((pageResponse.response ?? []).length === 0) {
+          break
+        }
+        currentPage += 1
+      } while (currentPage <= totalPages)
+
+      response = {
+        response: allPlayers,
+        paging: lastPaging
+      }
       break
     }
 
@@ -357,13 +378,13 @@ const main = safeAsync(async (): Promise<void> => {
     if (options.endpoint === 'fixtures' && options.format === 'table' && isFixtureArray(payload)) {
       const fixtures: FixtureAPI[] = payload
       payload = fixtures.map(f => ({
-        id: f.fixture.id,
-        date: (f.fixture.date || '').slice(0, 10),
-        round: f.league.round,
-        home: f.teams.home.name,
-        away: f.teams.away.name,
-        score: `${f.goals.home ?? '-'}-${f.goals.away ?? '-'}`,
-        status: f.fixture.status.short
+        ID: f.fixture.id,
+        Date: (f.fixture.date || '').slice(0, 10),
+        Home: f.teams.home.name,
+        Away: f.teams.away.name,
+        Score: `${f.goals.home ?? '-'}-${f.goals.away ?? '-'}`,
+        St: f.fixture.status.short,
+        Rnd: f.league.round
       }))
     }
 
@@ -392,6 +413,8 @@ const main = safeAsync(async (): Promise<void> => {
         name: p.player.name,
         firstname: p.player.firstname,
         lastname: p.player.lastname,
+        number: p.statistics?.[0]?.games?.number ?? '',
+        position: p.statistics?.[0]?.games?.position ?? '',
         age: p.player.age,
         birthDate: p.player.birth.date,
         birthPlace: p.player.birth.place,
@@ -399,11 +422,34 @@ const main = safeAsync(async (): Promise<void> => {
         nationality: p.player.nationality,
         height: p.player.height,
         weight: p.player.weight,
-        injured: p.player.injured,
-        photo: p.player.photo
+        injured: p.player.injured
       }))
 
       payload = basic
+    }
+
+    if ((options.endpoint === 'teams' || options.endpoint === 'team') &&
+      options.format === 'table') {
+      const teams: TeamResponseItemAPI[] =
+        isTeamArray(payload)
+          ? payload
+          : isTeamItem(payload)
+            ? [payload]
+            : []
+
+      if (teams.length > 0) {
+        payload = teams.map(t => ({
+          ID: t.team.id,
+          Name: t.team.name,
+          Code: t.team.code ?? '',
+          Country: t.team.country,
+          Founded: t.team.founded ?? '',
+          Venue: t.venue?.name ?? '',
+          City: t.venue?.city ?? '',
+          Capacity: t.venue?.capacity ?? '',
+          Surface: t.venue?.surface ?? ''
+        }))
+      }
     }
 
     {

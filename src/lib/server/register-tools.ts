@@ -1,4 +1,5 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema
@@ -21,7 +22,7 @@ export function registerToolHandlers (server: Server, toolRegistry: ToolRegistry
         }))
       }
     } catch (error) {
-      appLogger.error('Error listing tools', error as any)
+      appLogger.error({ error }, 'Error listing tools')
       throw handleError(error)
     }
   })
@@ -38,13 +39,14 @@ export function registerToolHandlers (server: Server, toolRegistry: ToolRegistry
 
       appLogger.info(`Calling tool: ${name}`)
 
-      const result = await (tool as any).call(request)
+      interface CallableTool extends Tool { call: (req: unknown) => Promise<CallToolResult> }
+      const result = await (tool as unknown as CallableTool).call(request)
 
       appLogger.info(`Tool ${name} result`)
 
       return result
     } catch (error) {
-      appLogger.error(`Error calling tool ${request.params.name}`, error as any)
+      appLogger.error({ error }, `Error calling tool ${request.params.name}`)
       throw handleError(error)
     }
   })

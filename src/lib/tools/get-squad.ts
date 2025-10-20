@@ -5,6 +5,8 @@ import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
 import { getToolArguments } from './params'
+import { logger } from '../logger/logger'
+import { GetSquadResult, PlayerProfile } from '../../types/tool-results'
 
 export interface GetSquadParams {
   teamId: number
@@ -17,13 +19,13 @@ export class GetSquadTool implements Tool {
   description = 'Get a team\'s squad for a given season'
 
   inputSchema = {
-    type: 'object',
+    type: 'object' as const,
     properties: {
       teamId: { type: 'number', description: 'Team ID' },
       season: { type: 'number', description: 'Season year (YYYY)' }
     },
-    required: ['teamId', 'season'] as string[]
-  } as any
+    required: ['teamId', 'season']
+  }
 
   constructor (
     private apiClient: APIFootballClient,
@@ -49,7 +51,7 @@ export class GetSquadTool implements Tool {
 
       const apiResponse = await this.apiClient.getPlayers({ team: params.teamId, season: params.season, page: 1 })
 
-      const squad = (apiResponse.response || []).map((playerData: any) => {
+      const squad: PlayerProfile[] = (apiResponse.response || []).map((playerData) => {
         const parsed = parsePlayer(playerData.player)
         return {
           id: parsed.id,
@@ -68,14 +70,14 @@ export class GetSquadTool implements Tool {
         }
       })
 
-      const result = { squad, total: squad.length }
+      const result: GetSquadResult = { squad, total: squad.length }
 
       const policy = getCachePolicy('players', params.season)
       this.cache.set(cacheKey, result, policy.ttl)
 
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
     } catch (error) {
-      console.error('Error in get_squad:', error)
+      logger.error('Error in get_squad', error as Error)
       return { content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` }], isError: true }
     }
   }

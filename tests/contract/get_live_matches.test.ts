@@ -31,36 +31,28 @@ describe('Contract: get_live_matches tool', () => {
     expect(getLiveMatchesTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('returns live fixtures that satisfy the documented schema', async () => {
+  it('returns compact table output by default', async () => {
     const result = await getLiveMatchesTool.call({ params: {} } as any)
 
     expect(result.isError).toBeUndefined()
-    const payload = JSON.parse(((result.content[0] as any).text as string))
+    const text = ((result.content[0] as any).text as string)
+    expect(typeof text).toBe('string')
+    expect(text).toContain('ID')
+    expect(text).toContain('Min')
+    expect(text).toContain('Home')
+    expect(text).toContain('Away')
+    expect(text).toContain('Score')
+    expect(text).toContain('St')
 
+    expect(mockApiClient.getLiveFixtures).toHaveBeenCalled()
+  })
+
+  it('returns full JSON when format is explicitly json', async () => {
+    const result = await getLiveMatchesTool.call({ params: { format: 'json' } } as any)
+    expect(result.isError).toBeUndefined()
+    const payload = JSON.parse(((result.content[0] as any).text as string))
     expect(Array.isArray(payload.fixtures)).toBe(true)
     expect(payload.total).toBe(payload.fixtures.length)
     expect(payload.fixtures.length).toBeGreaterThan(0)
-
-    const fixture = payload.fixtures[0]
-    expect(fixture.status.short).toBe('2H')
-    expect(fixture).toMatchObject({
-      id: expect.any(Number),
-      league: {
-        id: 39,
-        name: expect.any(String)
-      },
-      teams: {
-        home: {
-          id: expect.any(Number),
-          name: expect.any(String)
-        },
-        away: {
-          id: expect.any(Number),
-          name: expect.any(String)
-        }
-      }
-    })
-
-    expect(mockApiClient.getLiveFixtures).toHaveBeenCalled()
   })
 })

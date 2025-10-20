@@ -5,14 +5,12 @@ import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parseMatchEvent, parseFixture } from '../api-client/parser'
 import { getToolArguments } from './params'
+import { GetMatchEventsResult } from '../../types/tool-results'
+import { MatchEventAPI, FixtureAPI } from '../../types/api-football'
+import { logger } from '../logger/logger'
 
 export interface GetMatchEventsParams {
   fixtureId: number
-}
-
-export interface GetMatchEventsResult {
-  fixture: any
-  events: any[]
 }
 
 export class GetMatchEventsTool implements Tool {
@@ -90,20 +88,20 @@ export class GetMatchEventsTool implements Tool {
       // Get fixture details as well (query by id only)
       const fixturesResponse = await this.apiClient.getFixtures({ id: params.fixtureId })
 
-      let fixture: any = null
+      let fixture: import('../../models/fixture').Fixture | null = null
 
       // Find the fixture in the response
       if (fixturesResponse.response) {
-        const fixtureData = fixturesResponse.response.find((f: any) => f.fixture.id === params.fixtureId)
+        const fixtureData = fixturesResponse.response.find((f: FixtureAPI) => f.fixture.id === params.fixtureId)
         if (fixtureData) {
           fixture = parseFixture(fixtureData)
         }
       }
 
       // Filter out non-goal events for now
-      const events = eventsResponse.response
-        .filter((eventData: any) => eventData?.type === 'Goal')
-        .map((eventData: any) => parseMatchEvent(eventData))
+      const events = (eventsResponse.response || [])
+        .filter((eventData: MatchEventAPI) => eventData?.type === 'Goal')
+        .map((eventData: MatchEventAPI) => parseMatchEvent(eventData))
 
       const result: GetMatchEventsResult = {
         fixture: fixture || { id: params.fixtureId },
@@ -123,7 +121,7 @@ export class GetMatchEventsTool implements Tool {
       }
 
     } catch (error) {
-      console.error('Error in get_match_events:', error)
+      logger.error('Error in get_match_events', error as Error)
 
       return {
         content: [{

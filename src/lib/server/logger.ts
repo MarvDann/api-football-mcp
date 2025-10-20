@@ -11,7 +11,7 @@ export interface LogContext {
   userId?: string
   apiEndpoint?: string
   duration?: number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface LogEntry {
@@ -80,7 +80,7 @@ export class StructuredLogger {
   }
 
   // High-level logging methods for specific scenarios
-  toolCall (toolName: string, params: any, context?: LogContext): void {
+  toolCall (toolName: string, params: unknown, context?: LogContext): void {
     this.info(`Tool called: ${toolName}`, {
       ...context,
       toolName,
@@ -100,7 +100,7 @@ export class StructuredLogger {
     })
   }
 
-  apiCall (endpoint: string, params: any, context?: LogContext): void {
+  apiCall (endpoint: string, params: unknown, context?: LogContext): void {
     this.info(`API call: ${endpoint}`, {
       ...context,
       apiEndpoint: endpoint,
@@ -180,12 +180,12 @@ export class StructuredLogger {
     }
   }
 
-  private sanitizeParams (params: any): any {
+  private sanitizeParams (params: unknown): unknown {
     if (typeof params !== 'object' || params === null) {
       return params
     }
 
-    const sanitized = { ...params }
+    const sanitized: Record<string, unknown> = { ...(params as Record<string, unknown>) }
 
     // Remove or mask sensitive data
     const sensitiveKeys = ['apikey', 'api_key', 'token', 'password', 'secret']
@@ -240,7 +240,13 @@ export function generateRequestId (): string {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
-export function withRequestId<T extends (...args: any[]) => any> (
+function isPromiseLike (value: unknown): value is Promise<unknown> {
+  return typeof value === 'object' && value !== null &&
+    'then' in (value as Record<string, unknown>) && typeof (value as Record<string, unknown>).then === 'function' &&
+    'finally' in (value as Record<string, unknown>) && typeof (value as Record<string, unknown>).finally === 'function'
+}
+
+export function withRequestId<T extends (...args: unknown[]) => unknown> (
   fn: T,
   requestId?: string
 ): (...args: Parameters<T>) => ReturnType<T> {
@@ -249,15 +255,15 @@ export function withRequestId<T extends (...args: any[]) => any> (
     logger.setRequestId(id)
 
     try {
-      const result = fn(...args)
+      const res = fn(...args) as ReturnType<T>
 
       // Handle async functions
-      if (result && typeof result.then === 'function') {
-        return result.finally(() => { logger.clearRequestId() }) as ReturnType<T>
+      if (isPromiseLike(res as unknown)) {
+        return (res as unknown as Promise<unknown>).finally(() => { logger.clearRequestId() }) as ReturnType<T>
       }
 
       logger.clearRequestId()
-      return result
+      return res
     } catch (error) {
       logger.clearRequestId()
       throw error

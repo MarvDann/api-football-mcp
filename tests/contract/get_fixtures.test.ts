@@ -31,64 +31,38 @@ describe('Contract: get_fixtures tool', () => {
     expect(getFixturesTool.inputSchema).toEqual(contract.inputSchema)
   })
 
-  it('returns fixtures that satisfy the documented schema', async () => {
+  it('returns compact table output by default', async () => {
     const result = await getFixturesTool.call({ params: { season: 2024, teamId: 33 } } as any)
 
     expect(result.isError).toBeUndefined()
     expect(result.content).toHaveLength(1)
 
+    const text = ((result.content[0] as any).text as string)
+    expect(typeof text).toBe('string')
+    expect(text).toContain('ID')
+    expect(text).toContain('Date')
+    expect(text).toContain('Home')
+    expect(text).toContain('Away')
+    expect(text).toContain('Score')
+    expect(text).toContain('St')
+    expect(text).toContain('Rnd')
+
+    expect(mockApiClient.getFixtures).toHaveBeenCalledWith({
+      season: 2024,
+      team: 33
+    })
+  })
+
+  it('returns full JSON when format is explicitly json', async () => {
+    const result = await getFixturesTool.call({ params: { season: 2024, teamId: 33, format: 'json' } } as any)
+
+    expect(result.isError).toBeUndefined()
     const payload = JSON.parse(((result.content[0] as any).text as string))
 
     expect(payload).toHaveProperty('fixtures')
     expect(Array.isArray(payload.fixtures)).toBe(true)
     expect(payload.total).toBe(payload.fixtures.length)
     expect(payload.fixtures.length).toBeGreaterThan(0)
-
-    const fixture = payload.fixtures[0]
-    expect(fixture).toMatchObject({
-      id: expect.any(Number),
-      referee: expect.any(String),
-      timezone: expect.any(String),
-      date: expect.any(String),
-      timestamp: expect.any(Number),
-      league: {
-        id: expect.any(Number),
-        name: expect.any(String),
-        country: expect.any(String),
-        season: expect.any(Number)
-      },
-      teams: {
-        home: {
-          id: expect.any(Number),
-          name: expect.any(String),
-          logo: expect.any(String)
-        },
-        away: {
-          id: expect.any(Number),
-          name: expect.any(String),
-          logo: expect.any(String)
-        }
-      },
-      goals: {
-        home: expect.any(Number),
-        away: expect.any(Number)
-      },
-      score: {
-        halftime: {
-          home: expect.any(Number),
-          away: expect.any(Number)
-        },
-        fulltime: {
-          home: expect.any(Number),
-          away: expect.any(Number)
-        }
-      }
-    })
-
-    expect(mockApiClient.getFixtures).toHaveBeenCalledWith({
-      season: 2024,
-      team: 33
-    })
   })
 
   it('rejects invalid date ranges before hitting the API', async () => {

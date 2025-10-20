@@ -77,12 +77,17 @@ export interface PlayerGamesAPI {
   number?: number | null
   position?: string
   appearences?: number
+  lineups?: number
   minutes?: number
   rating?: string | null
 }
 
 export interface PlayerStatisticsAPI {
   games?: PlayerGamesAPI
+  team?: { id: number }
+  league?: { id: number; season: number }
+  goals?: { total?: number | null; assists?: number | null }
+  cards?: { yellow?: number | null; red?: number | null }
 }
 
 export interface PlayersResponseItemAPI {

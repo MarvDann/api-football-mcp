@@ -298,7 +298,7 @@ const validateOnly = safeAsync(async (config: ServerConfig, options: ServerOptio
   }
 })
 
-const listTools = safeAsync(async (config: ServerConfig, options: ServerOptions): Promise<void> => {
+const listTools = safeAsync(async (_config: ServerConfig, options: ServerOptions): Promise<void> => {
   logger.info('Listing available MCP tools...')
 
   // This would ideally come from the tool registry
@@ -392,4 +392,3 @@ if (require.main === module) {
 }
 
 export { main }
-

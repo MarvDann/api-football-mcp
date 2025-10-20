@@ -46,7 +46,7 @@ export interface StandingsResponse {
     league: string
     season: string
   }
-  errors: any[]
+  errors: unknown[]
   results: number
   paging: {
     current: number

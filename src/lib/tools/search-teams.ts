@@ -4,17 +4,24 @@ import { LRUCache } from '../cache/lru-cache'
 import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { logger } from '../logger/logger'
+import { SearchTeamsResult, ToolTeam } from '../../types/tool-results'
+import { TeamResponseItemAPI } from '../../types/api-football'
 import { getToolArguments } from './params'
+import { createOptionalObject } from '../utils/object-utils'
+import { getDefaultFormat, getDefaultMaxRows } from '../utils/format-config'
+import { renderTable } from '../utils/table'
+import { summarizeTeam } from '../utils/summarize'
 
 export interface SearchTeamsParams {
   query?: string
   season?: number
+  // output options (optional; supported by inputSchema and rendering logic)
+  format?: 'json' | 'table'
+  limit?: number
+  detail?: boolean
 }
 
-export interface SearchTeamsResult {
-  teams: any[]
-  total: number
-}
+// Result shape imported from ../../types/tool-results
 
 export class SearchTeamsTool implements Tool {
   [key: string]: unknown
@@ -31,6 +38,19 @@ export class SearchTeamsTool implements Tool {
       season: {
         type: 'number',
         description: 'Season year to get all teams from'
+      },
+      format: {
+        type: 'string' as const,
+        enum: ['json', 'table'] as const,
+        description: 'Output format (default: table)'
+      },
+      limit: {
+        type: 'number' as const,
+        description: 'Maximum number of rows when using table format'
+      },
+      detail: {
+        type: 'boolean' as const,
+        description: 'Return full JSON even for lists (overrides default table)'
       }
     }
   } as const
@@ -60,7 +80,7 @@ export class SearchTeamsTool implements Tool {
         }
       }
 
-      let apiResponse: any
+      let apiResponse: { response?: TeamResponseItemAPI[] }
 
       if (params.query) {
         // Search for specific teams by name
@@ -81,22 +101,25 @@ export class SearchTeamsTool implements Tool {
       }
 
       // Extract team data
-      const teams = apiResponse.response.map((teamData: any) => ({
+      const teams: ToolTeam[] = (apiResponse.response || []).map((teamData) => createOptionalObject({
         id: teamData.team.id,
         name: teamData.team.name,
-        code: teamData.team.code || null,
+        code: teamData.team.code ?? null,
         country: teamData.team.country,
         logo: teamData.team.logo,
-        founded: teamData.team.founded,
-        venue: teamData.venue ? {
-          id: teamData.venue.id,
-          name: teamData.venue.name,
-          city: teamData.venue.city,
-          capacity: teamData.venue.capacity,
-          surface: teamData.venue.surface,
-          image: teamData.venue.image
-        } : null
-      }))
+        ...(teamData.team.founded !== undefined ? { founded: teamData.team.founded } : {}),
+        venue: teamData.venue
+          ? createOptionalObject({
+            id: teamData.venue.id,
+            name: teamData.venue.name,
+            city: teamData.venue.city,
+            ...(teamData.venue.capacity !== undefined ? { capacity: teamData.venue.capacity } : {}),
+            ...(teamData.venue.surface !== undefined ? { surface: teamData.venue.surface } : {}),
+            ...(teamData.venue.image !== undefined ? { image: teamData.venue.image } : {}),
+            ...(teamData.venue.address !== undefined ? { address: teamData.venue.address } : {})
+          })
+          : null
+      })) as unknown as ToolTeam[]
 
       const result: SearchTeamsResult = {
         teams,
@@ -107,12 +130,23 @@ export class SearchTeamsTool implements Tool {
       const policy = getCachePolicy('search_teams', params.season)
       this.cache.set(cacheKey, result, policy.ttl)
 
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
-        }]
+      const format = params.detail ? 'json' : (params.format ?? getDefaultFormat())
+      if (format === 'json') {
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
       }
+
+      const rows = teams.map(t => summarizeTeam(t))
+      const table = renderTable(
+        [
+          { key: 'id', header: 'ID' },
+          { key: 'name', header: 'Name' },
+          { key: 'country', header: 'Country' },
+          { key: 'founded', header: 'Founded' }
+        ],
+        rows,
+        { maxRows: params.limit ?? getDefaultMaxRows(), showFooter: true }
+      )
+      return { content: [{ type: 'text', text: table }] }
 
     } catch (error) {
       logger.error('Error in search_teams', error as Error)

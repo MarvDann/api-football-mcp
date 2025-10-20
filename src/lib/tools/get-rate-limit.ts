@@ -9,9 +9,9 @@ export class GetRateLimitTool implements Tool {
 
   // No input required
   inputSchema = {
-    type: 'object',
+    type: 'object' as const,
     properties: {}
-  } as any
+  } as const
 
   constructor (
     private apiClient: APIFootballClient,
@@ -48,4 +48,3 @@ export class GetRateLimitTool implements Tool {
     }
   }
 }
-

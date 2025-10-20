@@ -7,7 +7,12 @@ import { parseFixture } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
 import { FixtureAPI } from '../../types/api-football'
+// import type { Fixture } from '../../models/fixture' // unused
+import { FixtureWithId, GetFixturesResult } from '../../types/tool-results'
 import { getToolArguments } from './params'
+import { getDefaultFormat, getDefaultMaxRows } from '../utils/format-config'
+import { renderTable } from '../utils/table'
+import { summarizeFixture } from '../utils/summarize'
 
 export interface GetFixturesParams {
   season?: number
@@ -16,12 +21,13 @@ export interface GetFixturesParams {
   from?: string
   to?: string
   status?: 'NS' | '1H' | 'HT' | '2H' | 'FT' | 'LIVE'
+  fixtureId?: number
+  format?: 'json' | 'table'
+  limit?: number
+  detail?: boolean
 }
 
-export interface GetFixturesResult {
-  fixtures: any[]
-  total: number
-}
+// Types sourced from ../../types/tool-results
 
 export class GetFixturesTool implements Tool {
   [key: string]: unknown
@@ -58,9 +64,26 @@ export class GetFixturesTool implements Tool {
         type: 'string' as const,
         enum: ['NS', '1H', 'HT', '2H', 'FT', 'LIVE'] as const,
         description: 'Filter by match status'
+      },
+      fixtureId: {
+        type: 'number' as const,
+        description: 'If provided, returns the full data for a single fixture'
+      },
+      format: {
+        type: 'string' as const,
+        enum: ['json', 'table'] as const,
+        description: 'Output format (default: table)'
+      },
+      limit: {
+        type: 'number' as const,
+        description: 'Maximum number of rows when using table format'
+      },
+      detail: {
+        type: 'boolean' as const,
+        description: 'Return full JSON even for lists (overrides default table)'
       }
     }
-  } as any
+  }
 
   constructor (
     private apiClient: APIFootballClient,
@@ -102,9 +125,23 @@ export class GetFixturesTool implements Tool {
           isError: true
         }
       }
+      // Single fixture path: return full data
+      if (params.fixtureId) {
+        const apiResponse = await this.apiClient.getFixtures({ id: params.fixtureId })
+        const fixtureData = (apiResponse.response || []).find((item: any) => item?.fixture?.id === params.fixtureId)
+        if (!fixtureData) {
+          return {
+            content: [{ type: 'text', text: `Error: Fixture ${params.fixtureId} not found` }],
+            isError: true
+          }
+        }
+        const full = parseFixture(fixtureData as any)
+        return {
+          content: [{ type: 'text', text: JSON.stringify(full, null, 2) }]
+        }
+      }
 
-
-      // Generate cache key
+      // Generate cache key (format/limit not included)
       const cacheKey = CacheKeys.fixtures(createApiParams({
         season: params.season,
         team: params.teamId,
@@ -117,12 +154,25 @@ export class GetFixturesTool implements Tool {
       // Try to get from cache first
       const cachedResult = this.cache.get(cacheKey)
       if (cachedResult) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(cachedResult, null, 2)
-          }]
+        const format = params.detail ? 'json' : (params.format ?? getDefaultFormat())
+        if (format === 'json') {
+          return { content: [{ type: 'text', text: JSON.stringify(cachedResult, null, 2) }] }
         }
+        const rows = (cachedResult.fixtures || []).map((f: any) => summarizeFixture(f))
+        const table = renderTable(
+          [
+            { key: 'id', header: 'ID' },
+            { key: 'date', header: 'Date' },
+            { key: 'home', header: 'Home' },
+            { key: 'away', header: 'Away' },
+            { key: 'score', header: 'Score' },
+            { key: 'st', header: 'St' },
+            { key: 'rnd', header: 'Rnd' }
+          ],
+          rows,
+          { maxRows: params.limit ?? getDefaultMaxRows(), showFooter: true }
+        )
+        return { content: [{ type: 'text', text: table }] }
       }
 
       // Fetch from API
@@ -136,7 +186,7 @@ export class GetFixturesTool implements Tool {
       }))
 
       // Parse and format the response, ensure fixture id is explicitly included
-      const fixtures = apiResponse.response.map((item: FixtureAPI) => {
+      const fixtures: FixtureWithId[] = apiResponse.response.map((item: FixtureAPI) => {
         const f = parseFixture(item)
         return { fixtureId: f.id, ...f }
       })
@@ -150,12 +200,25 @@ export class GetFixturesTool implements Tool {
       const policy = getCachePolicy('fixtures', params.season)
       this.cache.set(cacheKey, result, policy.ttl)
 
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
-        }]
+      const format = params.detail ? 'json' : (params.format ?? getDefaultFormat())
+      if (format === 'json') {
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
       }
+      const rows = fixtures.map(f => summarizeFixture(f))
+      const table = renderTable(
+        [
+          { key: 'id', header: 'ID' },
+          { key: 'date', header: 'Date' },
+          { key: 'home', header: 'Home' },
+          { key: 'away', header: 'Away' },
+          { key: 'score', header: 'Score' },
+          { key: 'st', header: 'St' },
+          { key: 'rnd', header: 'Rnd' }
+        ],
+        rows,
+        { maxRows: params.limit ?? getDefaultMaxRows(), showFooter: true }
+      )
+      return { content: [{ type: 'text', text: table }] }
 
     } catch (error) {
       logger.error('Error in get_fixtures', error as Error)

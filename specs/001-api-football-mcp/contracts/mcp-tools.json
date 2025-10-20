@@ -81,6 +81,23 @@
             "type": "string",
             "enum": ["NS", "1H", "HT", "2H", "FT", "LIVE"],
             "description": "Filter by match status"
+          },
+          "fixtureId": {
+            "type": "number",
+            "description": "If provided, returns the full data for a single fixture"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["json", "table"],
+            "description": "Output format (default: table)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of rows when using table format"
+          },
+          "detail": {
+            "type": "boolean",
+            "description": "Return full JSON even for lists (overrides default table)"
           }
         }
       },
@@ -229,6 +246,19 @@
           "season": {
             "type": "number",
             "description": "Season year to get all teams from"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["json", "table"],
+            "description": "Output format (default: table)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of rows when using table format"
+          },
+          "detail": {
+            "type": "boolean",
+            "description": "Return full JSON even for lists (overrides default table)"
           }
         }
       },
@@ -269,6 +299,19 @@
           "season": {
             "type": "number",
             "description": "Season year"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["json", "table"],
+            "description": "Output format (default: table)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of rows when using table format"
+          },
+          "detail": {
+            "type": "boolean",
+            "description": "Return full JSON even for lists (overrides default table)"
           }
         }
       },
@@ -292,7 +335,21 @@
       "description": "Get all currently live Premier League matches",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": ["json", "table"],
+            "description": "Output format (default: table)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of rows when using table format"
+          },
+          "detail": {
+            "type": "boolean",
+            "description": "Return full JSON even for lists (overrides default table)"
+          }
+        }
       },
       "outputSchema": {
         "type": "object",

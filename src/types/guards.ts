@@ -1,7 +1,8 @@
 import {
   FixtureAPI,
   MatchEventAPI,
-  PlayersResponseItemAPI
+  PlayersResponseItemAPI,
+  TeamResponseItemAPI
 } from './api-football'
 
 export function isFixtureArray (v: unknown): v is FixtureAPI[] {
@@ -28,4 +29,23 @@ export function isPlayersArray (v: unknown): v is PlayersResponseItemAPI[] {
   )
 }
 
-export type { FixtureAPI, MatchEventAPI, PlayersResponseItemAPI }
+export function isTeamArray (v: unknown): v is TeamResponseItemAPI[] {
+  return Array.isArray(v) && v.every((team: unknown) =>
+    typeof team === 'object' && team !== null &&
+    typeof (team as Record<string, any>).team?.id === 'number' &&
+    typeof (team as Record<string, any>).team?.name === 'string'
+  )
+}
+
+export function isTeamItem (v: unknown): v is TeamResponseItemAPI {
+  return typeof v === 'object' && v !== null &&
+    typeof (v as Record<string, any>).team?.id === 'number' &&
+    typeof (v as Record<string, any>).team?.name === 'string'
+}
+
+export type {
+  FixtureAPI,
+  MatchEventAPI,
+  PlayersResponseItemAPI,
+  TeamResponseItemAPI
+}

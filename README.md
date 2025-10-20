@@ -30,7 +30,7 @@ A Model Context Protocol (MCP) server that provides Premier League data via API�
 ## Data Coverage Notes
 
 - Historical coverage for the English Premier League via API‑Football v3 is commonly available from the 2002 season onwards. Earlier seasons (pre‑2002) may be incomplete or unavailable depending on the specific endpoint.
-- If you need season‑specific squads, use `season` with `get_team` (internally uses the `/players` endpoint) or the CLI `--endpoint squad team=<id> season=<YYYY>` helper.
+- If you need season‑specific squads, use `season` with `get_team` (internally uses the `/players` endpoint) or the CLI `--endpoint squad team=<id> season=<YYYY>` helper, which aggregates every page and prints a compact table without photo URLs.
 - Fixture queries support `round` in the form `"Regular Season - N"` in addition to `season`, `date`, and `from`/`to`.
 
 ## Installation
@@ -208,11 +208,17 @@ node dist/cli/api-client.js --endpoint standings
 # Get fixtures for a specific date range
 node dist/cli/api-client.js --endpoint fixtures season=2023 from=2023-01-01 to=2023-01-31
 
-# Search for a team
+# Search for a team (table output includes venue details)
 node dist/cli/api-client.js --endpoint teams search="Arsenal"
+
+# Get detailed team info for a specific season
+node dist/cli/api-client.js --endpoint team id=42 season=2024
 
 # Get player information
 node dist/cli/api-client.js --endpoint player id=276 --format table
+
+# Get a club's full season squad (multi-page fetch, compact table without photo URLs)
+node dist/cli/api-client.js --endpoint squad team=33 season=2025
 
 # Get goal events for a fixture
 node dist/cli/api-client.js --endpoint goals fixture=123456 --format table

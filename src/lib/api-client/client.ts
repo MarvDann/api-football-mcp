@@ -106,13 +106,13 @@ export class APIFootballClient {
         const data = await response.json() as ApiResponse<T>
 
         // Check for API errors in response (array or object shapes)
-        const errs = (data as any).errors
+        const errs = (data as { errors?: unknown }).errors
         const hasErrors = Array.isArray(errs)
           ? errs.length > 0
-          : (errs && typeof errs === 'object' && Object.keys(errs).length > 0)
+          : (errs && typeof errs === 'object' && Object.keys(errs as Record<string, unknown>).length > 0)
         if (hasErrors) {
           const message = Array.isArray(errs)
-            ? errs.map((e: any) => JSON.stringify(e)).join(', ')
+            ? errs.map(e => JSON.stringify(e)).join(', ')
             : JSON.stringify(errs)
           throw new RetryableError(`API Error: ${message}`,
             response.status,

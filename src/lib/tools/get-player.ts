@@ -7,6 +7,8 @@ import { parsePlayer } from '../api-client/parser'
 import { logger } from '../logger/logger'
 import { createApiParams } from '../utils/object-utils'
 import { getToolArguments } from './params'
+import { GetPlayerResult, PlayerProfile, PlayerStatisticsSummary } from '../../types/tool-results'
+import { PlayersResponseItemAPI, PlayerStatisticsAPI } from '../../types/api-football'
 
 export interface GetPlayerParams {
   playerId?: number
@@ -14,10 +16,7 @@ export interface GetPlayerParams {
   season?: number
 }
 
-export interface GetPlayerResult {
-  player: any
-  statistics?: any
-}
+// Result shape imported from ../../types/tool-results
 
 export class GetPlayerTool implements Tool {
   [key: string]: unknown
@@ -62,7 +61,7 @@ export class GetPlayerTool implements Tool {
         }
       }
 
-      let playerData: any = null
+      let playerData: PlayersResponseItemAPI | null = null
       let playerId: number | undefined = params.playerId
 
       // If we have a player ID, fetch player directly
@@ -82,8 +81,11 @@ export class GetPlayerTool implements Tool {
         const apiResponse = await this.apiClient.getPlayer(playerId, params.season)
 
         if (apiResponse.response && apiResponse.response.length > 0) {
-          playerData = apiResponse.response[0]
-          playerId = playerData.player.id
+          const first = apiResponse.response[0]
+          if (first) {
+            playerData = first
+            playerId = first.player.id
+          }
         }
       } else if (params.name) {
         // Search for player by name
@@ -95,20 +97,20 @@ export class GetPlayerTool implements Tool {
         if (searchResponse.response && searchResponse.response.length > 0) {
           // Find exact match or closest match
           const queryName = params.name.toLowerCase()
-          const exactMatch = searchResponse.response.find((p: any) =>
+          const exactMatch = searchResponse.response.find((p: PlayersResponseItemAPI) =>
             p.player.name.toLowerCase() === queryName ||
             `${p.player.firstname} ${p.player.lastname}`.toLowerCase() === queryName
           )
 
           if (exactMatch) {
             playerData = exactMatch
-            playerId = playerData.player.id
+            playerId = exactMatch.player.id
           } else {
             // Use first result as closest match
             const first = searchResponse.response[0]
             if (first) {
               playerData = first
-              playerId = playerData.player.id
+              playerId = first.player.id
             }
           }
         }
@@ -132,16 +134,16 @@ export class GetPlayerTool implements Tool {
       let position: string | undefined
       let number: number | null | undefined
       if (playerData.statistics && playerData.statistics.length > 0) {
-        const premierLeagueStats = playerData.statistics.find((stat: any) =>
-          stat.league.id === 39 && (!params.season || stat.league.season === params.season)
+        const premierLeagueStats = playerData.statistics.find((stat: PlayerStatisticsAPI) =>
+          (stat.league?.id === 39) && (!params.season || stat.league?.season === params.season)
         )
         if (premierLeagueStats) {
-          position = premierLeagueStats.games.position || undefined
-          number = premierLeagueStats.games.number ?? null
+          position = premierLeagueStats.games?.position || undefined
+          number = premierLeagueStats.games?.number ?? null
         }
       }
 
-      const player = {
+      const player: PlayerProfile = {
         id: parsed.id,
         name: parsed.name,
         firstname: parsed.firstname,
@@ -153,6 +155,7 @@ export class GetPlayerTool implements Tool {
         nationality: parsed.nationality,
         height: parsed.height,
         weight: parsed.weight,
+        injured: parsed.injured,
         photo: parsed.photo,
         ...(position ? { position } : {}),
         ...(number !== undefined ? { number } : {})
@@ -163,25 +166,25 @@ export class GetPlayerTool implements Tool {
       // Add statistics if available
       if (playerData.statistics && playerData.statistics.length > 0) {
         // Find Premier League statistics (league ID 39)
-        const premierLeagueStats = playerData.statistics.find((stat: any) =>
-          stat.league.id === 39 &&
-          (!params.season || stat.league.season === params.season)
+        const premierLeagueStats = playerData.statistics.find((stat: PlayerStatisticsAPI) =>
+          (stat.league?.id === 39) && (!params.season || stat.league?.season === params.season)
         )
 
         if (premierLeagueStats) {
-          result.statistics = {
+          const summary: PlayerStatisticsSummary = {
             playerId: player.id,
-            teamId: premierLeagueStats.team.id,
-            season: premierLeagueStats.league.season,
-            appearances: premierLeagueStats.games.appearences || 0,
-            lineups: premierLeagueStats.games.lineups || 0,
-            minutes: premierLeagueStats.games.minutes || 0,
-            goals: premierLeagueStats.goals.total || 0,
-            assists: premierLeagueStats.goals.assists || 0,
-            yellowCards: premierLeagueStats.cards.yellow || 0,
-            redCards: premierLeagueStats.cards.red || 0,
-            rating: premierLeagueStats.games.rating ? parseFloat(premierLeagueStats.games.rating) : null
+            teamId: premierLeagueStats.team?.id ?? 0,
+            season: premierLeagueStats.league?.season ?? (params.season ?? new Date().getFullYear()),
+            appearances: premierLeagueStats.games?.appearences ?? 0,
+            lineups: premierLeagueStats.games?.lineups ?? 0,
+            minutes: premierLeagueStats.games?.minutes ?? 0,
+            goals: premierLeagueStats.goals?.total ?? 0,
+            assists: premierLeagueStats.goals?.assists ?? 0,
+            yellowCards: premierLeagueStats.cards?.yellow ?? 0,
+            redCards: premierLeagueStats.cards?.red ?? 0,
+            rating: premierLeagueStats.games?.rating ? parseFloat(premierLeagueStats.games.rating) : null
           }
+          result.statistics = summary
         }
       }
 

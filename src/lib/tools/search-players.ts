@@ -5,20 +5,26 @@ import { CacheKeys } from '../cache/keys'
 import { getCachePolicy } from '../cache/policies'
 import { parsePlayer } from '../api-client/parser'
 import { logger } from '../logger/logger'
+import { SearchPlayersResult, PlayerProfile } from '../../types/tool-results'
+import { PlayersResponseItemAPI, PlayerStatisticsAPI } from '../../types/api-football'
 import { getToolArguments } from './params'
 import { createApiParams } from '../utils/object-utils'
+import { getDefaultFormat, getDefaultMaxRows } from '../utils/format-config'
+import { renderTable } from '../utils/table'
+import { summarizePlayer } from '../utils/summarize'
 
 export interface SearchPlayersParams {
   query?: string
   teamId?: number
   position?: 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Attacker'
   season?: number
+  // output options (optional; supported by inputSchema and rendering logic)
+  format?: 'json' | 'table'
+  limit?: number
+  detail?: boolean
 }
 
-export interface SearchPlayersResult {
-  players: any[]
-  total: number
-}
+// Result shape imported from ../../types/tool-results
 
 export class SearchPlayersTool implements Tool {
   [key: string]: unknown
@@ -44,6 +50,19 @@ export class SearchPlayersTool implements Tool {
       season: {
         type: 'number',
         description: 'Season year'
+      },
+      format: {
+        type: 'string' as const,
+        enum: ['json', 'table'] as const,
+        description: 'Output format (default: table)'
+      },
+      limit: {
+        type: 'number' as const,
+        description: 'Maximum number of rows when using table format'
+      },
+      detail: {
+        type: 'boolean' as const,
+        description: 'Return full JSON even for lists (overrides default table)'
       }
     }
   } as const
@@ -69,30 +88,24 @@ export class SearchPlayersTool implements Tool {
         }))
 
       // Try to get from cache first
-      let cachedResult = this.cache.get(cacheKey)
-      if (cachedResult) {
+      const cached = this.cache.get(cacheKey) as SearchPlayersResult | null
+      if (cached) {
+        let out = cached
         // Apply position filter if not cached with position
-        if (params.position && cachedResult.players) {
-          cachedResult = {
-            ...cachedResult,
-            players: cachedResult.players.filter((player: any) =>
-              player.position === params.position
-            ),
-            total: cachedResult.players.filter((player: any) =>
-              player.position === params.position
-            ).length
-          }
+        if (params.position && cached.players) {
+          const filtered = cached.players.filter((player) => player.position === params.position)
+          out = { ...cached, players: filtered, total: filtered.length }
         }
 
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify(cachedResult, null, 2)
+            text: JSON.stringify(out, null, 2)
           }]
         }
       }
 
-      let apiResponse: any
+      let apiResponse: { response?: PlayersResponseItemAPI[] }
 
       if (params.query) {
         // Search for players by name
@@ -121,19 +134,19 @@ export class SearchPlayersTool implements Tool {
       }
 
       // Parse player data and map to contract schema
-      let players = apiResponse.response.map((playerData: any) => {
+      let players: PlayerProfile[] = (apiResponse.response || []).map((playerData) => {
         const parsed = parsePlayer(playerData.player)
 
         let position: string | undefined
         let number: number | null | undefined
         if (playerData.statistics && playerData.statistics.length > 0) {
-          const premierLeagueStats = playerData.statistics.find((stat: any) =>
-            stat.league.id === 39 && (!params.season || stat.league.season === params.season)
+          const premierLeagueStats = playerData.statistics.find((stat: PlayerStatisticsAPI) =>
+            (stat.league?.id === 39) && (!params.season || stat.league?.season === params.season)
           )
 
           if (premierLeagueStats) {
-            position = premierLeagueStats.games.position || undefined
-            number = premierLeagueStats.games.number ?? null
+            position = premierLeagueStats.games?.position || undefined
+            number = premierLeagueStats.games?.number ?? null
           }
         }
 
@@ -149,6 +162,7 @@ export class SearchPlayersTool implements Tool {
           nationality: parsed.nationality,
           height: parsed.height,
           weight: parsed.weight,
+          injured: parsed.injured,
           photo: parsed.photo,
           ...(position ? { position } : {}),
           ...(number !== undefined ? { number } : {})
@@ -157,9 +171,10 @@ export class SearchPlayersTool implements Tool {
 
       // Apply position filter if specified
       if (params.position) {
-        players = players.filter((player: any) =>
+        const needle = params.position.toLowerCase()
+        players = players.filter((player) =>
           player.position === params.position ||
-          (player.position?.toLowerCase().includes(params.position!.toLowerCase()))
+          (player.position?.toLowerCase().includes(needle))
         )
       }
 
@@ -172,12 +187,25 @@ export class SearchPlayersTool implements Tool {
       const policy = getCachePolicy('search_players', params.season)
       this.cache.set(cacheKey, result, policy.ttl)
 
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
-        }]
+      const format = params.detail ? 'json' : (params.format ?? getDefaultFormat())
+      if (format === 'json') {
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
       }
+
+      const rows = players.map(p => summarizePlayer(p))
+      const table = renderTable(
+        [
+          { key: 'id', header: 'ID' },
+          { key: 'name', header: 'Name' },
+          { key: 'age', header: 'Age' },
+          { key: 'nat', header: 'Nat' },
+          { key: 'pos', header: 'Pos' },
+          { key: 'no', header: 'No' }
+        ],
+        rows,
+        { maxRows: params.limit ?? getDefaultMaxRows(), showFooter: true }
+      )
+      return { content: [{ type: 'text', text: table }] }
 
     } catch (error) {
       logger.error('Error in search_players', error as Error)
