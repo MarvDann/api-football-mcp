@@ -60,7 +60,10 @@ export class GetMatchGoalsTool implements Tool {
       }
 
       const events = (eventsResponse.response || [])
-        .filter((eventData: MatchEventAPI) => eventData?.type === 'Goal')
+        .filter(
+          (eventData: MatchEventAPI) =>
+            eventData?.type === 'Goal' && eventData?.detail !== 'Missed Penalty'
+        )
         .map((eventData: MatchEventAPI) => parseMatchEvent(eventData))
 
       const result: GetMatchGoalsResult = { fixture: fixture || { id: params.fixtureId }, events }

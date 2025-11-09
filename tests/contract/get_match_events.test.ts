@@ -87,6 +87,14 @@ describe('Contract: get_match_goals tool', () => {
     expect(mockApiClient.getFixtures).toHaveBeenCalledWith({ id: 1200001 })
   })
 
+  it('filters out missed penalty events from the goal list', async () => {
+    const result = await getMatchEventsTool.call({ params: { fixtureId: 1200001 } } as any)
+    const payload = JSON.parse(((result.content[0] as any).text as string))
+
+    const missedPenaltyEvents = payload.events.filter((event: any) => event.detail === 'Missed Penalty')
+    expect(missedPenaltyEvents).toHaveLength(0)
+  })
+
   it('rejects invalid fixture identifiers before hitting the API', async () => {
     const result = await getMatchEventsTool.call({ params: { fixtureId: -5 } } as any)
     expect(result.isError).toBe(true)

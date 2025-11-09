@@ -497,7 +497,7 @@ export const sampleMatchEventsResponse: ApiResponse<any[]> = {
     fixture: '1200001'
   },
   errors: [],
-  results: 2,
+  results: 3,
   paging: {
     current: 1,
     total: 1
@@ -546,6 +546,28 @@ export const sampleMatchEventsResponse: ApiResponse<any[]> = {
       type: 'Goal',
       detail: 'Penalty',
       comments: null
+    },
+    {
+      time: {
+        elapsed: 90,
+        extra: 2
+      },
+      team: {
+        id: 33,
+        name: 'Manchester United',
+        logo: 'https://example.com/mu.png'
+      },
+      player: {
+        id: 305,
+        name: 'Alejandro Garnacho'
+      },
+      assist: {
+        id: null,
+        name: null
+      },
+      type: 'Goal',
+      detail: 'Missed Penalty',
+      comments: 'Penalty missed'
     }
   ]
 }
